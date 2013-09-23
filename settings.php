@@ -16,19 +16,19 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Definition of log events
+ * Provides some custom settings for the certificate module
  *
  * @package    mod
- * @subpackage lesson
- * @copyright  2010 Petr Skoda (http://skodak.org)
+ * @subpackage certificate
+ * @copyright  Michael Avelar <michaela@moodlerooms.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+defined('MOODLE_INTERNAL') || die;
 
-$logs = array(
-    array('module'=>'certificate', 'action'=>'view', 'mtable'=>'certificate', 'field'=>'name'),
-    array('module'=>'certificate', 'action'=>'add', 'mtable'=>'certificate', 'field'=>'name'),
-     array('module'=>'certificate', 'action'=>'update', 'mtable'=>'certificate', 'field'=>'name'),
-    array('module'=>'certificate', 'action'=>'received', 'mtable'=>'certificate', 'field'=>'name'),
-);
+require_once($CFG->dirroot.'/mod/certificate/adminsetting.class.php');
+
+$settings->add(new mod_certificate_admin_setting_upload('certificate/uploadimage',
+    get_string('uploadimage', 'certificate'), get_string('uploadimagedesc', 'certificate'), ''));
+
+?>

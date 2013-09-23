@@ -1,304 +1,254 @@
 <?php
+
+// This file is part of the Certificate module for Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * A4_embedded certificate type
+ *
+ * @package    mod
+ * @subpackage certificate
+ * @copyright  Mark Nelson <markn@moodle.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 if (!defined('MOODLE_INTERNAL')) {
-	die('Direct access to this script is forbidden.');    ///  It must be included from view.php in mod/tracker
+    die('Direct access to this script is forbidden.'); // It must be included from view.php
 }
+
+$pdf = new PDF($certificate->orientation, 'mm', 'A4', true, 'UTF-8', false);
+
+$pdf->SetTitle($certificate->name);
+$pdf->setPrintHeader(false);
+$pdf->setPrintFooter(false);
+$pdf->SetAutoPageBreak(false, 0);
+$pdf->AddPage();
 
 // Date formatting - can be customized if necessary
 $certificatedate = '';
-if ($certrecord->certdate > 0) {
-	$certdate = $certrecord->certdate;
-}else $certdate = certificate_generate_date($certificate, $course);
+//print_object($certrecord);
+//print_object($certificate);
+//print_object($course);
+if ($certrecord->timecreated > 0) {
+        $certdate = $certrecord->timecreated;
+}else $certdate = certificate_get_date($certificate, $certrecord, $course); 
 if($certificate->printdate > 0)    {
-	if ($certificate->datefmt == 1)    {
-		$certificatedate = str_replace(' 0', ' ', strftime('%B %d, %Y', $certdate));
-	}   if ($certificate->datefmt == 2) {
-		$certificatedate = date('F jS, Y', $certdate);
-	}   if ($certificate->datefmt == 3) {
-		$certificatedate = str_replace(' 0', '', strftime('%d %B %Y', $certdate));
-	}   if ($certificate->datefmt == 4) {
-		$certificatedate = strftime('%B %Y', $certdate);
-	}   if ($certificate->datefmt == 5) {
-		$timeformat = get_string('strftimedate');
-		$certificatedate = userdate($certdate, $timeformat);
-	}
+        if ($certificate->datefmt == 1)    {
+                $certificatedate = str_replace(' 0', ' ', strftime('%B %d, %Y', $certdate));
+        }   if ($certificate->datefmt == 2) {
+                $certificatedate = date('F jS, Y', $certdate);
+        }   if ($certificate->datefmt == 3) {
+                $certificatedate = str_replace(' 0', '', strftime('%d %B %Y', $certdate));
+        }   if ($certificate->datefmt == 4) {
+                $certificatedate = strftime('%B %Y', $certdate);
+        }   if ($certificate->datefmt == 5) {
+                $timeformat = get_string('strftimedate');
+                $certificatedate = userdate($certdate, $timeformat);
+        }
 }
 
-//Grade formatting
-$grade = '';
-//Print the course grade
-$coursegrade = certificate_print_course_grade($course);
-if ($certificate->printgrade == 1 && $certrecord->reportgrade == !null) {
-	$reportgrade = $certrecord->reportgrade;
-	$grade = $strcoursegrade.':  '.$reportgrade;
-}else
-	if($certificate->printgrade > 0) {
-	if($certificate->printgrade == 1) {
-		if($certificate->gradefmt == 1) {
-			$grade = $strcoursegrade.':  '.$coursegrade->percentage;
-		}   if($certificate->gradefmt == 2) {
-			$grade = $strcoursegrade.':  '.$coursegrade->points;
-		}   if($certificate->gradefmt == 3) {
-			$grade = $strcoursegrade.':  '.$coursegrade->letter;
-
-		}
-	} else {
-		//Print the mod grade
-		$modinfo = certificate_print_mod_grade($course, $certificate->printgrade);
-		if ($certrecord->reportgrade == !null) {
-			$modgrade = $certrecord->reportgrade;
-			$grade = $modinfo->name.' '.$strgrade.': '.$modgrade;
-		}else
-			if($certificate->printgrade > 1) {
-			if ($certificate->gradefmt == 1) {
-				$grade = $modinfo->name.' '.$strgrade.': '.$modinfo->percentage;
-			}
-			if ($certificate->gradefmt == 2) {
-				$grade = $modinfo->name.' '.$strgrade.': '.$modinfo->points;
-			}
-			if($certificate->gradefmt == 3) {
-				$grade = $modinfo->name.' '.$strgrade.': '.$modinfo->letter;
-			}
-		}
-	}
-}
-//Print the outcome
-$outcome = '';
-$outcomeinfo = certificate_print_outcome($course, $certificate->printoutcome);
-if($certificate->printoutcome > 0) {
-	$outcome = $outcomeinfo->name.': '.$outcomeinfo->grade;
-}
-
-// Print the code number
-$code = '';
-if($certificate->printnumber) {
-	$code = $certrecord->code;
-}
-
-//Print the student name
-$studentname = '';
-$studentname = $certrecord->studentname;
 $classname = '';
 $classname = $certrecord->classname;
 
 // Print the custom class name
-if($certificate->customtext)
-{
-	$classname = $certificate->customtext;
+if($certificate->customtext){
+         $classname = $certificate->customtext;
+} else {
+        $classname = $certrecord->classname;
 }
-else {
-	$classname = $certrecord->classname;
-}
-$lenClassname = strlen($classname);
-$lenCN = intval($lenClassname);
-if($lenCN<=65)
-{
-	$y1 = 125+265;
-	$y2 = $y1 + 20;
-	$y3 = $y2 + 20;
-	$y4 = $y3 + 20;
-	$y5 = $y4 + 20;
-
-}
-else {
-	$y1 = 125+265+20;
-	$y2 = $y1 + 20;
-	$y3 = $y2 + 20;
-	$y4 = $y3 + 20;
-	$y5 = $y4 + 20;
-}
+//$lenClassname = strlen($classname);
+//$lenCN = intval($lenClassname);
 
 //Print the credit hours by Dongyoung
 // if($certificate->printhours) {
 // $credithours =  $strcredithours.': '.$certificate->printhours;
 // } else $credithours = '';
 
-if($certificate->printhours) {
-	if($certificate->printhours==1)
-	{
-		$credithours =  'for a total of '.$certificate->printhours.' program hour';
-	}
-	else {
-		$credithours =  'for a total of '.$certificate->printhours.' program hours';
-	}
-
+if($certificate->printhours){
+        if($certificate->printhours==1){
+                $credithours =  'for a total of '.$certificate->printhours.' program hour';
+        } else {
+                $credithours =  'for a total of '.$certificate->printhours.' program hours';
+        }
 } else $credithours = '';
 
-if($certificate->eduhours) {
-	if($credithours == '')
-	{
-		if($certificate->eduhours==1)
-		{
-			$eduhours =  $certificate->eduhours.' hour of continuing education';
-		}
-		else {
-			$eduhours =  $certificate->eduhours.' hours of continuing education';
-		}
-	}
-	else {
-		if($certificate->eduhours==1)
-		{
-			$eduhours =  ' or '.$certificate->eduhours.' hour of continuing education';
-		}
-		else {
-			$eduhours =  ' or '.$certificate->eduhours.' hours of continuing education';
-		}
-	}
+if($certificate->eduhours){
+        if($credithours == ''){
+                if($certificate->eduhours==1){
+                        $eduhours =  $certificate->eduhours.' hour of continuing education';
+                } else {
+                        $eduhours =  $certificate->eduhours.' hours of continuing education';
+                }
+        } else {
+                if($certificate->eduhours==1){
+                        $eduhours =  ' or '.$certificate->eduhours.' hour of continuing education';
+                } else {
+                        $eduhours =  ' or '.$certificate->eduhours.' hours of continuing education';
+                }
+        }
 } else $eduhours = '';
 
-
 // Print Location
-if($certificate->location =='')
-{
-	$location = '';
-}
-else {
-	$location = $certificate->location;
+if($certificate->location ==''){
+        $location = '';
+} else {
+        $location = $certificate->location;
 }
 
 // Print Trainers
-if($certificate->trainer == '')
-{
-	$trainersname = '';
+if($certificate->trainer == ''){
+        $trainersname = '';
+} else {
+        $trainersname = 'Presented by '.$certificate->trainer;
 }
-else {
-	$trainersname = 'Presented by '.$certificate->trainer;
-}
+
 
 $customcertificatedate = '';
 $customdate = $certificate->customdate;
 if($certificate->customdate > 0)    {
-	if ($certificate->datefmt == 1)    {
-		$customcertificatedate = str_replace(' 0', ' ', strftime('%B %d, %Y', $customdate));
-	}   if ($certificate->datefmt == 2) {
-		$customcertificatedate = date('F jS, Y', $customdate);
-	}   if ($certificate->datefmt == 3) {
-		$customcertificatedate = str_replace(' 0', '', strftime('%d %B %Y', $customdate));
-	}   if ($certificate->datefmt == 4) {
-		$customcertificatedate = strftime('%B %Y', $customdate);
-	}   if ($certificate->datefmt == 5) {
-		$timeformat = get_string('strftimedate');
-		$customcertificatedate = userdate($customdate, $timeformat);
-	}
+        if ($certificate->datefmt == 1)    {
+                $customcertificatedate = str_replace(' 0', ' ', strftime('%B %d, %Y', $customdate));
+        }   if ($certificate->datefmt == 2) {
+                $customcertificatedate = date('F jS, Y', $customdate);
+        }   if ($certificate->datefmt == 3) {
+                $customcertificatedate = str_replace(' 0', '', strftime('%d %B %Y', $customdate));
+        }   if ($certificate->datefmt == 4) {
+                $customcertificatedate = strftime('%B %Y', $customdate);
+        }   if ($certificate->datefmt == 5) {
+                $timeformat = get_string('strftimedate');
+                $customcertificatedate = userdate($customdate, $timeformat);
+        }
 }
 
 $customcertificatedate2 = '';
 $customdate2 = $certificate->customdate2;
 if($certificate->customdate2 > 0)    {
-	if ($certificate->datefmt == 1)    {
-		$customcertificatedate2 = str_replace(' 0', ' ', strftime('%B %d, %Y', $customdate2));
-	}   if ($certificate->datefmt == 2) {
-		$customcertificatedate2 = date('F jS, Y', $customdate2);
-	}   if ($certificate->datefmt == 3) {
-		$customcertificatedate2 = str_replace(' 0', '', strftime('%d %B %Y', $customdate2));
-	}   if ($certificate->datefmt == 4) {
-		$customcertificatedate2 = strftime('%B %Y', $customdate2);
-	}   if ($certificate->datefmt == 5) {
-		$timeformat = get_string('strftimedate');
-		$customcertificatedate2 = userdate($customdate2, $timeformat);
-	}
+        if ($certificate->datefmt == 1)    {
+                $customcertificatedate2 = str_replace(' 0', ' ', strftime('%B %d, %Y', $customdate2));
+        }   if ($certificate->datefmt == 2) {
+                $customcertificatedate2 = date('F jS, Y', $customdate2);
+        }   if ($certificate->datefmt == 3) {
+                $customcertificatedate2 = str_replace(' 0', '', strftime('%d %B %Y', $customdate2));
+        }   if ($certificate->datefmt == 4) {
+                $customcertificatedate2 = strftime('%B %Y', $customdate2);
+        }   if ($certificate->datefmt == 5) {
+                $timeformat = get_string('strftimedate');
+                $customcertificatedate2 = userdate($customdate2, $timeformat);
+        }
 }
+
 
 // Print Custom date
-if($certificate->customdate == 0)
-{
-	if(empty($certificatedate))
-	{
-		$customdate = "";
-	}
-	else
-	{
-		$customdate = " on ".$certificatedate;
-	}
-
-}
-else {
-	if($certificate->customdate2 == 0)
-	{
-		$customdate = " on ".$customcertificatedate;
-	}
-	else
-	{
-		$customdate = " from ".$customcertificatedate. " to ".$customcertificatedate2;
-	}
-
-}
-
-
-$pdf = new TCPDF($certificate->orientation, 'pt', 'Letter', true, 'UTF-8', false);
-// $pdf->SetProtection(array('print'));
-$pdf->SetTitle($certificate->name);
-$pdf->setPrintHeader(false);
-$pdf->setPrintFooter(false);
-$pdf->AddPage();
-$pdf->SetAutoPageBreak(false, 0);
-
-//Define variables
-
-//Landscape
-if ($certificate->orientation == 'L') {
-	$x = 28;
-	$y = 125;
-	$sealx = 590;
-	$sealy = 425;
-	$sigx = 130;
-	$sigy = 440;
-	$custx = 133;
-	$custy = 440;
-	$wmarkx = 100;
-	$wmarky = 90;
-	$wmarkw = 600;
-	$wmarkh = 420;
-	$brdrx = 0;
-	$brdry = 0;
-	$brdrw = 792;
-	$brdrh = 612;
-	$codey = 505;
+if($certificate->customdate == 0){
+        if(empty($certificatedate))
+        {
+                $customdate = ""." blank";
+        } else {
+                $customdate = " on ".$certificatedate;
+        }
 } else {
-	//Portrait
-	$x = 28;
-	$y = 170;
-	$sealx = 440;
-	$sealy = 590;
-	$sigx = 85;
-	$sigy = 580;
-	$custx = 88;
-	$custy = 580;
-	$wmarkx = 78;
-	$wmarky = 130;
-	$wmarkw = 450;
-	$wmarkh = 480;
-	$brdrx = 10;
-	$brdry = 10;
-	$brdrw = 594;
-	$brdrh = 771;
-	$codey = 660;
+        if($certificate->customdate2 == 0){
+                $customdate = " on ".$customcertificatedate;
+        } else {
+                $customdate = " from ".$customcertificatedate. " to ".$customcertificatedate2;
+        }
 }
 
-// Add Underlines By Dongyoung
+
+// Define variables
+// Landscape
+if ($certificate->orientation == 'L') {
+    $x = 10;
+    $y = 30;
+    $sealx = 230;
+    $sealy = 150;
+    $sigx = 47;
+    $sigy = 155;
+    $custx = 47;
+    $custy = 155;
+    $wmarkx = 40;
+    $wmarky = 31;
+    $wmarkw = 212;
+    $wmarkh = 148;
+    $brdrx = 0;
+    $brdry = 0;
+    $brdrw = 297;
+    $brdrh = 210;
+    $codey = 175;
+} else { // Portrait
+    $x = 10;
+    $y = 40;
+    $sealx = 150;
+    $sealy = 220;
+    $sigx = 30;
+    $sigy = 230;
+    $custx = 30;
+    $custy = 230;
+    $wmarkx = 26;
+    $wmarky = 58;
+    $wmarkw = 158;
+    $wmarkh = 170;
+    $brdrx = 0;
+    $brdry = 0;
+    $brdrw = 210;
+    $brdrh = 297;
+    $codey = 250;
+}
+// Add underline AB
 $udline = str_pad(' ',9,"_");
 
 // Add images and lines
-print_border($pdf, $certificate, $brdrx, $brdry, $brdrw, $brdrh);
-draw_frame_letter($pdf, $certificate);
+certificate_print_image($pdf, $certificate, CERT_IMAGE_BORDER, $brdrx, $brdry, $brdrw, $brdrh);
+certificate_draw_frame($pdf, $certificate);
 // Set alpha to semi-transparency
-$pdf->SetAlpha(0.1);
-print_watermark($pdf, $certificate, $wmarkx, $wmarky, $wmarkw, $wmarkh);
+$pdf->SetAlpha(0.2);
+certificate_print_image($pdf, $certificate, CERT_IMAGE_WATERMARK, $wmarkx, $wmarky, $wmarkw, $wmarkh);
 $pdf->SetAlpha(1);
-print_seal($pdf, $certificate, $sealx, $sealy, '', '');
-print_signature($pdf, $certificate, $sigx, $sigy, '', '');
+certificate_print_image($pdf, $certificate, CERT_IMAGE_SEAL, $sealx, $sealy, '', '');
+certificate_print_image($pdf, $certificate, CERT_IMAGE_SIGNATURE, $sigx, $sigy, '', '');
 
 // Add text
-$pdf->SetTextColor(0,0,120);
-cert_printtext($pdf, $x, $y, 'C', 'freesans', 'B', 30, get_string('title', 'certificate'));
-$pdf->SetTextColor(0,0,0);
-cert_printtext($pdf, $x, $y+55, 'C', 'freeserif', '', 20, get_string('certify', 'certificate'));
-cert_printtext($pdf, $x, $y+105, 'C', 'freeserif', '', 30, $studentname. ', License #'.$udline);
-cert_printtext($pdf, $x, $y+155, 'C', 'freeserif', '', 20, get_string('statement', 'certificate'));
-cert_printtext($pdf, $x, $y+205, 'C', 'freeserif', 'B', 20, $classname);
-cert_printtext($pdf, $x, $y1, 'C', 'freeserif', '', 14, $credithours.$eduhours.$customdate);
-cert_printtext($pdf, $x, $y2, 'C', 'freeserif', '', 14, $trainersname);
-cert_printtext($pdf, $x, $y3, 'C', 'freeserif', '', 14, $location);
-cert_printtext($pdf, $x, $y+283, 'C', 'freeserif', '', 10, $grade);
-cert_printtext($pdf, $x, $y+311, 'C', 'freeserif', '', 10, $outcome);
-cert_printtext($pdf, $x, $codey, 'C', 'freeserif', '', 10, get_string('verificationcode','certificate').$code);
+$pdf->SetTextColor(0, 0, 120);
+certificate_print_text($pdf, $x, $y, 'C', 'freesans', 'B', 30, get_string('title', 'certificate'));
+$pdf->SetTextColor(0, 0, 0);
+certificate_print_text($pdf, $x, $y + 20, 'C', 'freeserif', '', 20, get_string('certify', 'certificate'));
+certificate_print_text($pdf, $x, $y + 36, 'C', 'freeserif', '', 30, fullname($USER). ', License #'.$udline);
+certificate_print_text($pdf, $x, $y + 55, 'C', 'freeserif', '', 20, get_string('statement', 'certificate'));
+//certificate_print_text($pdf, $x, $y + 72, 'C', 'freeserif', '', 20, $course->fullname);
+certificate_print_text($pdf, $x, $y + 72, 'C', 'freeserif', '', 24, $classname);
+certificate_print_text($pdf, $x, $y + 100, 'C', 'freeserif', '', 14, $credithours.$eduhours.$customdate);
+certificate_print_text($pdf, $x, $y + 110, 'C', 'freeserif', '', 14, $trainersname);
+certificate_print_text($pdf, $x, $y + 120, 'C', 'freeserif', '', 14, $location);
+
+//certificate_print_text($pdf, $x, $y + 92, 'C', 'freeserif', '', 14,  certificate_get_date($certificate, $certrecord, $course));
+//certificate_print_text($pdf, $x, $y + 102, 'C', 'freeserif', '', 10, certificate_get_grade($certificate, $course));
+//certificate_print_text($pdf, $x, $y + 112, 'C', 'freeserif', '', 10, certificate_get_outcome($certificate, $course));
+//if ($certificate->printhours) {
+//certificate_print_text($pdf, $x, $y + 122, 'C', 'freeserif', '', 10, get_string('credithours', 'certificate') . ': ' . $certificate->printhours);
+//}
+certificate_print_text($pdf, $x, $codey, 'C', 'freeserif', '', 10, get_string('verificationcode','certificate').certificate_get_code($certificate, $certrecord));
+$i = 0;
+if ($certificate->printteacher) {
+    $context = get_context_instance(CONTEXT_MODULE, $cm->id);
+    if ($teachers = get_users_by_capability($context, 'mod/certificate:printteacher', '', $sort = 'u.lastname ASC', '', '', '', '', false)) {
+        foreach ($teachers as $teacher) {
+            $i++;
+            certificate_print_text($pdf, $sigx, $sigy + ($i * 4), 'L', 'freeserif', '', 12, fullname($teacher));
+        }
+    }
+}
+
+//certificate_print_text($pdf, $custx, $custy, 'L', null, null, null, $certificate->customtext);
 ?>

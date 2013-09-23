@@ -234,33 +234,6 @@ function certificate_get_participants($certificateid) {
 }
 
 /**
- * Returns certid & userid under autogen = 1, certdate = 0
- */
-function certificate_cronlist2(){
-    global $CFG, $DB;
-    $certmoduleid = $DB->get_record_select('modules',"name='certificate'");
-    return $DB->get_records_sql(
-            "SELECT DISTINCT DK.*
-            FROM(
-            SELECT @rownum:=@rownum+1 as rownumber, cm.id AS cmid, u.id AS userid, cm.instance AS instance, c.id AS course, cma.gradeitemid AS gradeitemid, cma.grademin AS grademin, cma.grademax AS grademax, cert.delivery AS delivery
-            FROM {course_modules} cm, {course} c, {user} u, {role_assignments} ra, {context} cxt, {course_modules_availability} cma, {certificate} cert, (SELECT @rownum:=0) r
-            WHERE cm.module = $certmoduleid->id
-            AND cm.course = c.id
-            AND c.id = cxt.instanceid
-            AND cxt.id = ra.contextid
-            AND ra.userid = u.id
-            AND ra.roleid=5
-            AND cxt.contextlevel=50
-            AND cm.instance = cert.id
-            AND cert.autogen = 1
-        ) DK
-            INNER JOIN {grade_grades} gg
-            ON DK.userid = gg.userid
-            WHERE DK.gradeitemid = gg.itemid
-            AND IFNULL(rawgrade,-1) BETWEEN grademin AND grademax");
-}
-
-/**
  * @uses FEATURE_GROUPS
  * @uses FEATURE_GROUPINGS
  * @uses FEATURE_GROUPMEMBERSONLY
@@ -289,17 +262,6 @@ function certificate_supports($feature) {
  * TODO:This needs to be done
  */
 function certificate_cron () {
-   /* global $DB;
-    $cronlist = certificate_cronlist2();
-    foreach($cronlist as $cron){
-        $course = $DB->get_record('course', array('id'=>$cron->course));
-        $cm = $DB->get_record('course_modules', array('id'=>$cron->cmid));
-        $certificate = $DB->get_record('certificate', array('id'=>$cron->instance));
-        $user = $DB->get_record('user', array('id'=>$cron->userid));
-        $context = get_context_instance(CONTEXT_MODULE, $cron->cmid);
-
-        // Create new certificate record
-        $certrecord = certificate_prepare_issue($course, $user, $certificate); */
     return true;
 }
 
@@ -1143,15 +1105,11 @@ function certificate_get_mod_grade($course, $moduleid, $userid) {
         $modinfo->percentage = grade_format_gradevalue($grade, $item, true, GRADE_DISPLAY_TYPE_PERCENTAGE, $decimals = 2);
         $modinfo->letter = grade_format_gradevalue($grade, $item, true, GRADE_DISPLAY_TYPE_LETTER, $decimals = 0);
 
-        // AB
-        $modinfo->grade = $grade;
-
         if ($grade) {
             $modinfo->dategraded = $item->grades[$userid]->dategraded;
         } else {
             $modinfo->dategraded = time();
         }
-//print_object($modinfo);
         return $modinfo;
     }
 
@@ -1173,7 +1131,7 @@ function certificate_get_date($certificate, $certrecord, $course, $userid = null
     if (empty($userid)) {
         $userid = $USER->id;
     }
-    //print_object($certrecord);
+
     // Set certificate date to current time, can be overwritten later
     $date = $certrecord->timecreated;
 
@@ -1190,7 +1148,6 @@ function certificate_get_date($certificate, $certrecord, $course, $userid = null
         }
     } else if ($certificate->printdate > 2) {
         if ($modinfo = certificate_get_mod_grade($course, $certificate->printdate, $userid)) {
-            //print_object($modinfo); ABBB
             $date = $modinfo->dategraded;
         }
     }

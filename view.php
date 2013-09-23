@@ -1,16 +1,32 @@
 <?php
 
+// This file is part of the Certificate module for Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Handles viewing a certificate
  *
  * @package    mod
  * @subpackage certificate
- * @copyright  Chardelle Busch, Mark Nelson <mark@moodle.com.au>
+ * @copyright  Mark Nelson <markn@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once('../../config.php');
-require_once('lib.php');
+require_once("../../config.php");
+require_once("$CFG->dirroot/mod/certificate/deprecatedlib.php");
+require_once("$CFG->dirroot/mod/certificate/lib.php");
 require_once("$CFG->libdir/pdflib.php");
 
 $id = required_param('id', PARAM_INT);    // Course Module ID
@@ -40,6 +56,11 @@ $completion->set_module_viewed($cm);
 $PAGE->set_url('/mod/certificate/view.php', array('id' => $cm->id));
 $PAGE->set_context($context);
 $PAGE->set_cm($cm);
+$PAGE->set_title(format_string($certificate->name));
+$PAGE->set_heading(format_string($course->fullname));
+
+// Set the context
+$context = get_context_instance(CONTEXT_MODULE, $cm->id);
 
 if (($edit != -1) and $PAGE->user_allowed_editing()) {
      $USER->editing = $edit;
@@ -47,107 +68,94 @@ if (($edit != -1) and $PAGE->user_allowed_editing()) {
 
 // Add block editing button
 if ($PAGE->user_allowed_editing()) {
-    $buttons = '<table><tr><td><form method="get" action="view.php"><div>'.
-        '<input type="hidden" name="id" value="'.$cm->id.'" />'.
-        '<input type="hidden" name="edit" value="'.($PAGE->user_is_editing()?'off':'on').'" />'.
-        '<input type="submit" value="'.get_string($PAGE->user_is_editing()?'blockseditoff':'blocksediton').'" /></div></form></td></tr></table>';
-    $PAGE->set_button($buttons);
+    $editvalue = $PAGE->user_is_editing() ? 'off' : 'on';
+    $strsubmit = $PAGE->user_is_editing() ? get_string('blockseditoff') : get_string('blocksediton');
+    $url = new moodle_url($CFG->wwwroot . '/mod/certificate/view.php', array('id' => $cm->id, 'edit' => $editvalue));
+    $PAGE->set_button($OUTPUT->single_button($url, $strsubmit));
 }
 
-// Create new certificate record
-$certrecord = certificate_prepare_issue($course, $USER, $certificate);
-
-// Load some strings
-$strreviewcertificate = get_string('reviewcertificate', 'certificate');
-$strgetcertificate = get_string('getcertificate', 'certificate');
-$strgrade = get_string('grade', 'certificate');
-$strcoursegrade = get_string('coursegrade', 'certificate');
-$strcredithours = get_string('credithours', 'certificate');
-$filename = clean_filename($certificate->name.'.pdf');
-
-// Load the specific certificatetype
-require ("$CFG->dirroot/mod/certificate/type/$certificate->certificatetype/certificate.php");
-
-if ($certificate->reissuecert) { // Reissue certificate every time
-    if (empty($action)) {
-        view_header($course, $certificate, $cm);
-        if ($attempts = certificate_get_attempts($certificate->id, $USER->id)) {
-            echo certificate_print_attempts($certificate->id, $USER->id);
-        }
-        if ($certificate->delivery == 0)    {
-            echo '<p style="text-align:center">'.get_string('openwindow', 'certificate').'</p>';
-        } elseif ($certificate->delivery == 1)    {
-            echo '<p style="text-align:center">'.get_string('opendownload', 'certificate').'</p>';
-        } elseif ($certificate->delivery == 2)    {
-            echo '<p style="text-align:center">'.get_string('openemail', 'certificate').'</p>';
-        }
-
-        echo '<div style="text-align:center">';
-        $link = new moodle_url('/mod/certificate/view.php?id='.$cm->id.'&action=get');
-        $linkname = $strgetcertificate;
-        $button = new single_button($link, $linkname);
-        $button->add_action(new popup_action('click', $link, 'view'.$cm->id, array('height' => 600, 'width' => 800)));
-        echo $OUTPUT->render($button);
-        echo '</div>';
-        add_to_log($course->id, 'certificate', 'received', "view.php?id=$cm->id", $certificate->id, $cm->id);
-        echo $OUTPUT->footer($course);
-        exit;
+// Check if the user can view the certificate
+if ($certificate->requiredtime && !has_capability('mod/certificate:manage', $context)) {
+    if (certificate_get_course_time($course->id) < ($certificate->requiredtime * 60)) {
+        $a = new stdClass;
+        $a->requiredtime = $certificate->requiredtime;
+        notice(get_string('requiredtimenotmet', 'certificate', $a), "$CFG->wwwroot/course/view.php?id=$course->id");
+        die;
     }
-    certificate_issue($course, $certificate, $certrecord, $cm); // update certrecord as issued
-} else if ($certrecord->certdate > 0) { // Review certificate
-    if (empty($action)) {
-        view_header($course, $certificate, $cm);
-        $link = new moodle_url('/mod/certificate/view.php?id='.$cm->id.'&action=get');
-        echo '<p style="text-align:center">'.get_string('viewed', 'certificate').'<br />'.userdate($certrecord->certdate).'</p>';
-        echo '<div style="text-align:center">';
-        $linkname = $strreviewcertificate;
-        $button = new single_button($link, $linkname);
-        $button->add_action(new popup_action('click', $link, 'view'.$cm->id, array('height' => 600, 'width' => 800)));
-        echo $OUTPUT->render($button);
-        echo '</div>';
-        echo $OUTPUT->footer($course);
-        exit;
-    }
-} else if ($certrecord->certdate == 0) { //Create certificate
-    if (empty($action)) {
-        view_header($course, $certificate, $cm);
-        if ($certificate->delivery == 0)    {
-            echo '<p style="text-align:center">'.get_string('openwindow', 'certificate').'</p>';
-        } elseif ($certificate->delivery == 1)    {
-            echo '<p style="text-align:center">'.get_string('opendownload', 'certificate').'</p>';
-        } elseif ($certificate->delivery == 2)    {
-            echo '<p style="text-align:center">'.get_string('openemail', 'certificate').'</p>';
-        }
-
-        $link = new moodle_url('/mod/certificate/view.php?id='.$cm->id.'&action=get');
-        echo '<div style="text-align:center">';
-        $linkname = $strgetcertificate;
-        $button = new single_button($link, $linkname);
-        $button->add_action(new popup_action('click', $link, 'view'.$cm->id, array('height' => 600, 'width' => 800)));
-        echo $OUTPUT->render($button);
-        echo '</div>';
-        add_to_log($course->id, 'certificate', 'received', "view.php?id=$cm->id", $certificate->id, $cm->id);
-        echo $OUTPUT->footer($course);
-        exit;
-    }
-    certificate_issue($course, $certificate, $certrecord, $cm); // update certrecord as issued
 }
 
-if ($action) {
-    // Output to pdf
+// Create new certificate record, or return existing record
+$certrecord = certificate_get_issue($course, $USER, $certificate, $cm);
+
+// Create a directory that is writeable so that TCPDF can create temp images.
+// In 2.2 onwards the function make_cache_directory was introduced, use that,
+// otherwise we will use make_upload_directory.
+if ($CFG->version >= '2011120500') {
+    make_cache_directory('tcpdf');
+} else {
+    make_upload_directory('cache/tcpdf');
+}
+
+// Load the specific certificate type.
+require("$CFG->dirroot/mod/certificate/type/$certificate->certificatetype/certificate.php");
+
+if (empty($action)) { // Not displaying PDF
+    echo $OUTPUT->header();
+
+    /// find out current groups mode
+    groups_print_activity_menu($cm, $CFG->wwwroot . '/mod/certificate/view.php?id=' . $cm->id);
+    $currentgroup = groups_get_activity_group($cm);
+    $groupmode = groups_get_activity_groupmode($cm);
+
+    if (has_capability('mod/certificate:manage', $context)) {
+        $numusers = count(certificate_get_issues($certificate->id, 'ci.timecreated ASC', $groupmode, $cm));
+        $url = html_writer::tag('a', get_string('viewcertificateviews', 'certificate', $numusers),
+            array('href' => $CFG->wwwroot . '/mod/certificate/report.php?id=' . $cm->id));
+        echo html_writer::tag('div', $url, array('class' => 'reportlink'));
+    }
+
+    if (!empty($certificate->intro)) {
+        echo $OUTPUT->box(format_module_intro('certificate', $certificate, $cm->id), 'generalbox', 'intro');
+    }
+
+    if ($attempts = certificate_get_attempts($certificate->id)) {
+        echo certificate_print_attempts($course, $certificate, $attempts);
+    }
+    if ($certificate->delivery == 0)    {
+        $str = get_string('openwindow', 'certificate');
+    } elseif ($certificate->delivery == 1)    {
+        $str = get_string('opendownload', 'certificate');
+    } elseif ($certificate->delivery == 2)    {
+        $str = get_string('openemail', 'certificate');
+    }
+    echo html_writer::tag('p', $str, array('style' => 'text-align:center'));
+    $linkname = get_string('getcertificate', 'certificate');
+    // Add to log, only if we are reissuing
+    add_to_log($course->id, 'certificate', 'view', "view.php?id=$cm->id", $certificate->id, $cm->id);
+
+    $link = new moodle_url('/mod/certificate/view.php?id='.$cm->id.'&action=get');
+    $button = new single_button($link, $linkname);
+    $button->add_action(new popup_action('click', $link, 'view'.$cm->id, array('height' => 600, 'width' => 800)));
+
+    echo html_writer::tag('div', $OUTPUT->render($button), array('style' => 'text-align:center'));
+    echo $OUTPUT->footer($course);
+    exit;
+} else { // Output to pdf
+    // Remove full-stop at the end if it exists, to avoid "..pdf" being created and being filtered by clean_filename
+    $certname = rtrim($certificate->name, '.');
+    $filename = clean_filename("$certname.pdf");
     if ($certificate->savecert == 1) {
-        //pdf contents are now in $file_contents as a string
+        // PDF contents are now in $file_contents as a string
        $file_contents = $pdf->Output('', 'S');
-       $filename = clean_filename($certificate->name.'.pdf');
        certificate_save_pdf($file_contents, $certrecord->id, $filename, $context->id);
     }
     if ($certificate->delivery == 0) {
-        $pdf->Output($filename, 'I');// open in browser
+        $pdf->Output($filename, 'I'); // open in browser
     } elseif ($certificate->delivery == 1) {
         $pdf->Output($filename, 'D'); // force download when create
     } elseif ($certificate->delivery == 2) {
-        certificate_email_students($USER, $course, $certificate, $certrecord, $context);
-        $pdf->Output($filename, 'I');// open in browser
-        $pdf->Output('', 'S');// send
+        certificate_email_student($course, $certificate, $certrecord, $context);
+        $pdf->Output($filename, 'I'); // open in browser
+        $pdf->Output('', 'S'); // send
     }
 }

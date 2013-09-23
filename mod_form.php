@@ -1,4 +1,29 @@
 <?php
+
+// This file is part of the Certificate module for Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+* Instance add/edit form
+*
+* @package    mod
+* @subpackage certificate
+* @copyright  Mark Nelson <markn@moodle.com>
+* @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+*/
+
 if (!defined('MOODLE_INTERNAL')) {
     die('Direct access to this script is forbidden.');    ///  It must be included from a Moodle page
 }
@@ -52,16 +77,16 @@ class mod_certificate_mod_form extends moodleform_mod {
             $mform->addHelpButton('reportcert', 'reportcert', 'certificate');
         }
 
-        $mform->addElement('select', 'reissuecert', get_string('reissuecert', 'certificate'), $ynoptions);
-        $mform->setDefault('reissuecert', 0);
-        $mform->addHelpButton('reissuecert', 'reissuecert', 'certificate');
+        $mform->addElement('text', 'requiredtime', get_string('coursetimereq', 'certificate'), array('size'=>'3'));
+        $mform->setType('requiredtime', PARAM_INT);
+        $mform->addHelpButton('requiredtime', 'coursetimereq', 'certificate');
 
         // Auto Generation Options
-        $mform->addElement('header', 'autogenoptions', get_string('autogenoptions', 'certificate'));
-        $mform->addElement('select', 'autogen', get_string('autogen', 'certificate'), $ynoptions);
-        $mform->setDefault('autogen',0);
-        $mform->addHelpButton('autogen','autogen','certificate');
-        
+        $mform->addElement('header', 'autogenoptions', get_string('autogenoptions', 'certificate')); // AB
+        $mform->addElement('select', 'autogen', get_string('autogen', 'certificate'), $ynoptions); // AB
+        $mform->setDefault('autogen',0); // AB
+        $mform->addHelpButton('autogen','autogen','certificate'); // AB
+
         // Text Options
         $mform->addElement('header', 'textoptions', get_string('textoptions', 'certificate'));
 
@@ -71,19 +96,20 @@ class mod_certificate_mod_form extends moodleform_mod {
         $mform->setDefault('printdate', 'N');
         $mform->addHelpButton('printdate', 'printdate', 'certificate');
 
-        // Add Custom Start date Options
-        $options = array('startyear => 1990', 'stopyear' => '2050', 'timezone' => 99, 'applydst' => true, 'optional' => true);
-        $mform->addElement('date_selector', 'customdate', get_string('customdate', 'certificate'), $options);
-        $mform->setType('customdate', PARAM_RAW);
-        $mform->addHelpButton('customdate', 'customdate', 'certificate');
-        
+        // Add Custom Start date Options // AB
+        $options = array('startyear => 1990', 'stopyear' => '2050', 'timezone' => 99, 'applydst' => true, 'optional' => true); // AB
+        $mform->addElement('date_selector', 'customdate', get_string('customdate', 'certificate'), $options); // AB
+        $mform->setType('customdate', PARAM_RAW); // AB
+        $mform->addHelpButton('customdate', 'customdate', 'certificate'); // AB
+
         // Add Custom End date Options
-        $options = array('startyear => 1990', 'stopyear' => '2050', 'timezone' => 99, 'applydst' => true, 'optional' => true);
-        $mform->addElement('date_selector', 'customdate2', get_string('customdate2', 'certificate'), $options);
-        $mform->setType('customdate2', PARAM_RAW);
-        $mform->addHelpButton('customdate2', 'customdate2', 'certificate');
-        
-        $dateformatoptions = array( 1 => 'January 1, 2000', 2 => 'January 1st, 2000', 3 => '1 January 2000', 4 => 'January 2000', 5 => get_string('userdateformat', 'certificate'));
+        $options = array('startyear => 1990', 'stopyear' => '2050', 'timezone' => 99, 'applydst' => true, 'optional' => true); // AB
+        $mform->addElement('date_selector', 'customdate2', get_string('customdate2', 'certificate'), $options); // AB
+        $mform->setType('customdate2', PARAM_RAW); // AB
+        $mform->addHelpButton('customdate2', 'customdate2', 'certificate'); // AB
+
+        $dateformatoptions = array( 1 => 'January 1, 2000', 2 => 'January 1st, 2000', 3 => '1 January 2000',
+            4 => 'January 2000', 5 => get_string('userdateformat', 'certificate'));
         $mform->addElement('select', 'datefmt', get_string('datefmt', 'certificate'), $dateformatoptions);
         $mform->setDefault('datefmt', 0);
         $mform->addHelpButton('datefmt', 'datefmt', 'certificate');
@@ -92,12 +118,13 @@ class mod_certificate_mod_form extends moodleform_mod {
         $mform->setDefault('printnumber', 0);
         $mform->addHelpButton('printnumber', 'printnumber', 'certificate');
 
-        $gradeoptions = certificate_get_grade_options() + $modules;
+        $gradeoptions = certificate_get_grade_options() + certificate_get_grade_categories($this->current->course) + $modules;
         $mform->addElement('select', 'printgrade', get_string('printgrade', 'certificate'),$gradeoptions);
         $mform->setDefault('printgrade', 0);
         $mform->addHelpButton('printgrade', 'printgrade', 'certificate');
 
-        $gradeformatoptions = array( 1 => get_string('gradepercent', 'certificate'), 2 => get_string('gradepoints', 'certificate'), 3 => get_string('gradeletter', 'certificate'));
+        $gradeformatoptions = array( 1 => get_string('gradepercent', 'certificate'), 2 => get_string('gradepoints', 'certificate'),
+            3 => get_string('gradeletter', 'certificate'));
         $mform->addElement('select', 'gradefmt', get_string('gradefmt', 'certificate'), $gradeformatoptions);
         $mform->setDefault('gradefmt', 0);
         $mform->addHelpButton('gradefmt', 'gradefmt', 'certificate');
@@ -107,39 +134,38 @@ class mod_certificate_mod_form extends moodleform_mod {
         $mform->setDefault('printoutcome', 0);
         $mform->addHelpButton('printoutcome', 'printoutcome', 'certificate');
 
-        // Program hours
-        $mform->addElement('text', 'printhours', get_string('printhours', 'certificate'), array('size'=>'5'));
+        // Program hours // AB
+        $mform->addElement('text', 'printhours', get_string('printhours', 'certificate'), array('size'=>'5', 'maxlength' => '255'));
         $mform->setType('printhours', PARAM_TEXT);
         $mform->addHelpButton('printhours', 'printhours', 'certificate');
 
-        // CEU Hours
-        $mform->addElement('text', 'eduhours', get_string('eduhours', 'certificate'), array('size'=>'5'));
-        $mform->setType('eduhours', PARAM_TEXT);
-        $mform->addHelpButton('eduhours', 'eduhours', 'certificate');
-        
-//         $mform->addElement('select', 'printteacher', get_string('printteacher', 'certificate'), $ynoptions);
-//         $mform->setDefault('printteacher', 0);
-//         $mform->addHelpButton('printteacher', 'printteacher', 'certificate');
+        // CEU Hours // AB
+        $mform->addElement('text', 'eduhours', get_string('eduhours', 'certificate'), array('size'=>'5', 'maxlength' => '255')); // AB
+        $mform->setType('eduhours', PARAM_TEXT); // AB
+        $mform->addHelpButton('eduhours', 'eduhours', 'certificate'); // AB
 
-        // Instead of print teacher, you able to enter custom trainers' name.
+        //$mform->addElement('select', 'printteacher', get_string('printteacher', 'certificate'), $ynoptions);
+        //$mform->setDefault('printteacher', 0);
+        //$mform->addHelpButton('printteacher', 'printteacher', 'certificate');
+
+        // Instead of print teacher, you able to enter custom trainers' name // AB
         $mform->addElement('textarea', 'trainer', get_string('trainer', 'certificate'), array('cols'=>'40', 'rows'=>'1', 'wrap'=>'virtual'));
         $mform->setType('location', PARAM_RAW);
         $mform->addHelpButton('trainer', 'trainer', 'certificate');
-        
-        // Custom Course name instead of custom text.
+
+        // Custom Course name instead of custom text // AB
         $mform->addElement('textarea', 'customtext', get_string('customtext', 'certificate'), array('cols'=>'40', 'rows'=>'4', 'wrap'=>'virtual'));
         $mform->setType('customtext', PARAM_RAW);
         $mform->addHelpButton('customtext', 'customtext', 'certificate');
 
-        // Add Custom location field
-        $mform->addElement('textarea', 'location', get_string('location', 'certificate'), array('cols'=>'40', 'rows'=>'1', 'wrap'=>'virtual'));
-        $mform->setType('location', PARAM_RAW);
-        $mform->addHelpButton('location', 'location', 'certificate');
-        
+        // Add Custom location field // AB
+        $mform->addElement('textarea', 'location', get_string('location', 'certificate'), array('cols'=>'40', 'rows'=>'1', 'wrap'=>'virtual')); // AB
+        $mform->setType('location', PARAM_RAW); // AB
+        $mform->addHelpButton('location', 'location', 'certificate'); // AB
+
         // Design Options
         $mform->addElement('header', 'designoptions', get_string('designoptions', 'certificate'));
-        $CERTIFICATE_TYPES = certificate_types();
-        $mform->addElement('select', 'certificatetype', get_string('certificatetype', 'certificate'),$CERTIFICATE_TYPES);
+        $mform->addElement('select', 'certificatetype', get_string('certificatetype', 'certificate'), certificate_types());
         $mform->setDefault('certificatetype', 'letter_CEUs');
         $mform->addHelpButton('certificatetype', 'certificatetype', 'certificate');
 
@@ -148,34 +174,48 @@ class mod_certificate_mod_form extends moodleform_mod {
         $mform->setDefault('orientation', 'landscape');
         $mform->addHelpButton('orientation', 'orientation', 'certificate');
 
-		$borderstyleoptions = certificate_get_borders();
-        $mform->addElement('select', 'borderstyle', get_string('borderstyle', 'certificate'), $borderstyleoptions);
-        $mform->setDefault('borderstyle', 0);
+        $mform->addElement('select', 'borderstyle', get_string('borderstyle', 'certificate'), certificate_get_images(CERT_IMAGE_BORDER));
+        $mform->setDefault('borderstyle', '0');
         $mform->addHelpButton('borderstyle', 'borderstyle', 'certificate');
 
-        $printframe = array( 0 => get_string('no'), 1 => get_string('borderblack', 'certificate'), 2 => get_string('borderbrown', 'certificate'), 3 => get_string('borderblue', 'certificate'), 4 => get_string('bordergreen', 'certificate'));
+        $printframe = array( 0 => get_string('no'), 1 => get_string('borderblack', 'certificate'), 2 => get_string('borderbrown', 'certificate'),
+            3 => get_string('borderblue', 'certificate'), 4 => get_string('bordergreen', 'certificate'));
         $mform->addElement('select', 'bordercolor', get_string('bordercolor', 'certificate'), $printframe);
-        $mform->setDefault('bordercolor', 1);
+        $mform->setDefault('bordercolor', '0');
         $mform->addHelpButton('bordercolor', 'bordercolor', 'certificate');
 
-        $wmarkoptions = certificate_get_watermarks();
-        $mform->addElement('select', 'printwmark', get_string('printwmark', 'certificate'),$wmarkoptions);
-        $mform->setDefault('printwmark', 0);
+        $mform->addElement('select', 'printwmark', get_string('printwmark', 'certificate'), certificate_get_images(CERT_IMAGE_WATERMARK));
+        $mform->setDefault('printwmark', '0');
         $mform->addHelpButton('printwmark', 'printwmark', 'certificate');
 
-        $signatureoptions = certificate_get_signatures ();
-        $mform->addElement('select', 'printsignature', get_string('printsignature', 'certificate'), $signatureoptions);
-        $mform->setDefault('printsignature', 0);
+        $mform->addElement('select', 'printsignature', get_string('printsignature', 'certificate'), certificate_get_images(CERT_IMAGE_SIGNATURE));
+        $mform->setDefault('printsignature', '0');
         $mform->addHelpButton('printsignature', 'printsignature', 'certificate');
 
-        $sealoptions = certificate_get_seals();
-        $mform->addElement('select', 'printseal', get_string('printseal', 'certificate'),$sealoptions);
-        $mform->setDefault('printseal', 0);
+        $mform->addElement('select', 'printseal', get_string('printseal', 'certificate'), certificate_get_images(CERT_IMAGE_SEAL));
+        $mform->setDefault('printseal', '0');
         $mform->addHelpButton('printseal', 'printseal', 'certificate');
 
         $this->standard_coursemodule_elements();
 
         $this->add_action_buttons();
+    }
 
+    /**
+     * Some basic validation
+     *
+     * @param $data
+     * @param $files
+     * @return array
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+
+        // Check that the required time entered is valid
+        if ((!is_number($data['requiredtime']) || $data['requiredtime'] < 0)) {
+            $errors['requiredtime'] = get_string('requiredtimenotvalid', 'certificate');
+        }
+
+        return $errors;
     }
 }

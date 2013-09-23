@@ -221,13 +221,13 @@ certificate_print_image($pdf, $certificate, CERT_IMAGE_SIGNATURE, $sigx, $sigy, 
 
 // Add text
 $pdf->SetTextColor(0, 0, 120);
-certificate_print_text($pdf, $x, $y, 'C', 'freesans', 'B', 30, get_string('title', 'certificate'));
+certificate_print_text($pdf, $x, $y, 'C', 'freeserif', 'B', 30, get_string('title', 'certificate'));
 $pdf->SetTextColor(0, 0, 0);
 certificate_print_text($pdf, $x, $y + 20, 'C', 'freeserif', '', 20, get_string('certify', 'certificate'));
 certificate_print_text($pdf, $x, $y + 36, 'C', 'freeserif', '', 30, fullname($USER). ', License #'.$udline);
 certificate_print_text($pdf, $x, $y + 55, 'C', 'freeserif', '', 20, get_string('statement', 'certificate'));
 //certificate_print_text($pdf, $x, $y + 72, 'C', 'freeserif', '', 20, $course->fullname);
-certificate_print_text($pdf, $x, $y + 72, 'C', 'freeserif', '', 24, $classname);
+certificate_print_text($pdf, $x, $y + 72, 'C', 'freeserif', '', 30, $classname);
 certificate_print_text($pdf, $x, $y + 100, 'C', 'freeserif', '', 14, $credithours.$eduhours.$customdate);
 certificate_print_text($pdf, $x, $y + 110, 'C', 'freeserif', '', 14, $trainersname);
 certificate_print_text($pdf, $x, $y + 120, 'C', 'freeserif', '', 14, $location);
@@ -239,7 +239,6 @@ certificate_print_text($pdf, $x, $y + 120, 'C', 'freeserif', '', 14, $location);
 //certificate_print_text($pdf, $x, $y + 122, 'C', 'freeserif', '', 10, get_string('credithours', 'certificate') . ': ' . $certificate->printhours);
 //}
 certificate_print_text($pdf, $x, $codey, 'C', 'freeserif', '', 10, get_string('verificationcode','certificate').certificate_get_code($certificate, $certrecord));
-certificate_print_text($pdf, $x, $codey+8, 'C', 'freeserif', '', 9, get_string('bottomline','certificate'));
 $i = 0;
 if ($certificate->printteacher) {
     $context = get_context_instance(CONTEXT_MODULE, $cm->id);

@@ -1,11 +1,26 @@
 <?php
 
+// This file is part of the Certificate module for Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * This page lists all the instances of certificate in a particular course
  *
  * @package    mod
  * @subpackage certificate
- * @copyright Mark Nelson <mark@moodle.com.au>
+ * @copyright  Mark Nelson <markn@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -66,11 +81,13 @@ if ($usesections) {
 
 foreach ($certificates as $certificate) {
     if (!$certificate->visible) {
-        //Show dimmed if the mod is hidden
-        $link = "<a class=\"dimmed\" href=\"view.php?id=$certificate->coursemodule\">$certificate->name</a>";
+        // Show dimmed if the mod is hidden
+        $link = html_writer::tag('a', $certificate->name, array('class' => 'dimmed',
+            'href' => $CFG->wwwroot . '/mod/certificate/view.php?id=' . $certificate->coursemodule));
     } else {
-        //Show normal if the mod is visible
-        $link = "<a href=\"view.php?id=$certificate->coursemodule\">$certificate->name</a>";
+        // Show normal if the mod is visible
+        $link = html_writer::tag('a', $certificate->name, array('class' => 'dimmed',
+            'href' => $CFG->wwwroot . '/mod/certificate/view.php?id=' . $certificate->coursemodule));
     }
     if ($certificate->section !== $currentsection) {
         if ($certificate->section) {
@@ -82,16 +99,12 @@ foreach ($certificates as $certificate) {
         $currentsection = $certificate->section;
     }
     // Get the latest certificate issue
-    if ($certrecord = certificate_get_latest_issue($certificate->id, $USER->id)) {
-        if ($certrecord->certdate > 0) {
-            $issued = userdate($certrecord->certdate);
-        } else {
-            $issued = get_string('notreceived', 'certificate');
-        }
+    if ($certrecord = $DB->get_record('certificate_issues', array('userid' => $USER->id, 'certificateid' => $certificate->id))) {
+        $issued = userdate($certrecord->timecreated);
     } else {
         $issued = get_string('notreceived', 'certificate');
     }
-    if ($course->format == 'weeks' or $course->format == 'topics') {
+    if (($course->format == 'weeks') || ($course->format == 'topics')) {
         $table->data[] = array ($certificate->section, $link, $issued);
     } else {
         $table->data[] = array ($link, $issued);
