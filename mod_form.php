@@ -91,6 +91,7 @@ class mod_certificate_mod_form extends moodleform_mod {
         $mform->addElement('header', 'textoptions', get_string('textoptions', 'certificate'));
 
         $modules = certificate_get_mods();
+        //print_object($modules);
         $dateoptions = certificate_get_date_options() + $modules;
         $mform->addElement('select', 'printdate', get_string('printdate', 'certificate'), $dateoptions);
         $mform->setDefault('printdate', 'N');

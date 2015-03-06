@@ -89,12 +89,7 @@ $certrecord = certificate_get_issue($course, $USER, $certificate, $cm);
 
 // Create a directory that is writeable so that TCPDF can create temp images.
 // In 2.2 onwards the function make_cache_directory was introduced, use that,
-// otherwise we will use make_upload_directory.
-if ($CFG->version >= '2011120500') {
-    make_cache_directory('tcpdf');
-} else {
-    make_upload_directory('cache/tcpdf');
-}
+make_cache_directory('tcpdf');
 
 // Load the specific certificate type.
 require("$CFG->dirroot/mod/certificate/type/$certificate->certificatetype/certificate.php");

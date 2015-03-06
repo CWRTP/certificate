@@ -1,27 +1,36 @@
 <?php
+
+// This file is part of the Certificate module for Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * A4_embedded certificate type
+ *
+ * @package    mod
+ * @subpackage certificate
+ * @copyright  Mark Nelson <markn@moodle.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 if (!defined('MOODLE_INTERNAL')) {
 	die('Direct access to this script is forbidden.');    ///  It must be included from view.php in mod/tracker
 }
 
 // Date formatting - can be customized if necessary
 $certificatedate = '';
-if ($certrecord->timecreated > 0) {
-	$certdate = $certrecord->timecreated;
-}else $certdate = certificate_generate_date($certificate, $course);
-if($certificate->printdate > 0)    {
-	if ($certificate->datefmt == 1)    {
-		$certificatedate = str_replace(' 0', ' ', strftime('%B %d, %Y', $certdate));
-	}   if ($certificate->datefmt == 2) {
-		$certificatedate = date('F jS, Y', $certdate);
-	}   if ($certificate->datefmt == 3) {
-		$certificatedate = str_replace(' 0', '', strftime('%d %B %Y', $certdate));
-	}   if ($certificate->datefmt == 4) {
-		$certificatedate = strftime('%B %Y', $certdate);
-	}   if ($certificate->datefmt == 5) {
-		$timeformat = get_string('strftimedate');
-		$certificatedate = userdate($certdate, $timeformat);
-	}
-}
+$certificatedate = certificate_get_date($certificate, $certrecord, $course);
 
 //Grade formatting
 $grade = '';
@@ -166,7 +175,13 @@ else {
 }
 
 $customcertificatedate = '';
-$customdate = $certificate->customdate;
+
+if($certificate->customdate > 0) {
+    $customdate = $certificate->customdate;
+} else {
+    $customdate = certificate_get_date($certificate, $certrecord, $course);
+}
+
 if($certificate->customdate > 0)    {
 	if ($certificate->datefmt == 1)    {
 		$customcertificatedate = str_replace(' 0', ' ', strftime('%B %d, %Y.', $customdate));
@@ -202,30 +217,28 @@ if($certificate->customdate2 > 0)    {
 
 
 // Print Custom date
-if($certificate->customdate == 0)
-{
-	if(empty($certificatedate))
-	{
+$certificateprintdate = "";
+if($certificate->customdate == 0) {
+	if(empty($certificatedate)) {
 		$customdate = "";
-	}
-	else
-	{
+	} else {
 		$customdate = " on ".$certificatedate;
+                $certificateprintdate = $certificatedate;
 	}
-
-}
-else {
-	if($certificate->customdate2 == 0)
-	{
+} else {
+	if($certificate->customdate2 == 0) {
 		$customdate = " on ".$customcertificatedate;
-	}
-	else
-	{
+                $certificateprintdate = $customcertificatedate;
+	} else {
 		$customdate = " from ".$customcertificatedate. " to ".$customcertificatedate2;
+                $certificateprintdate = $customcertificatedate;
 	}
-
 }
 
+$certificateprintcode = (certificate_get_code($certificate, $certrecord));
+
+// This is to update the certificateprintdate column, so that it can be used in the configurable report
+$DB->execute("UPDATE mdl_certificate_issues SET mdl_certificate_issues.certificateprintdate='$certificateprintdate' WHERE mdl_certificate_issues.code='$certificateprintcode'");
 
 $pdf = new TCPDF($certificate->orientation, 'pt', 'Letter', true, 'UTF-8', false);
 // $pdf->SetProtection(array('print'));
@@ -303,6 +316,6 @@ cert_printtext($pdf, $x, $y2, 'C', 'freeserif', '', 12, $trainersname);
 cert_printtext($pdf, $x, $y3, 'C', 'freeserif', '', 12, $location.'.');
 cert_printtext($pdf, $x, $y+283, 'C', 'freeserif', '', 12, $grade);
 cert_printtext($pdf, $x, $y+311, 'C', 'freeserif', '', 12, $outcome);
-cert_printtext($pdf, $x, $codey, 'C', 'freeserif', '', 10, get_string('verificationcode','certificate').$code);
+cert_printtext($pdf, $x, $codey, 'C', 'freeserif', '', 10, get_string('verificationcode','certificate').$certificateprintcode);
 cert_printtext($pdf, $x, $codey+25, 'C', 'freeserif', '', 8.5, get_string('bottomline','certificate'));
 ?>

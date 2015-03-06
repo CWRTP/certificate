@@ -38,29 +38,9 @@ $pdf->AddPage();
 
 // Date formatting - can be customized if necessary
 $certificatedate = '';
-//print_object($certrecord);
-//print_object($certificate);
-//print_object($course);
-if ($certrecord->timecreated > 0) {
-        $certdate = $certrecord->timecreated;
-}else $certdate = certificate_get_date($certificate, $certrecord, $course); 
-if($certificate->printdate > 0)    {
-        if ($certificate->datefmt == 1)    {
-                $certificatedate = str_replace(' 0', ' ', strftime('%B %d, %Y', $certdate));
-        }   if ($certificate->datefmt == 2) {
-                $certificatedate = date('F jS, Y', $certdate);
-        }   if ($certificate->datefmt == 3) {
-                $certificatedate = str_replace(' 0', '', strftime('%d %B %Y', $certdate));
-        }   if ($certificate->datefmt == 4) {
-                $certificatedate = strftime('%B %Y', $certdate);
-        }   if ($certificate->datefmt == 5) {
-                $timeformat = get_string('strftimedate');
-                $certificatedate = userdate($certdate, $timeformat);
-        }
-}
+$certificatedate = certificate_get_date($certificate, $certrecord, $course); 
 
 $classname = '';
-$classname = $certrecord->classname;
 
 // Print the custom class name
 if($certificate->customtext){
@@ -71,7 +51,7 @@ if($certificate->customtext){
 //$lenClassname = strlen($classname);
 //$lenCN = intval($lenClassname);
 
-//Print the credit hours by Dongyoung
+//Print the credit hours 
 // if($certificate->printhours) {
 // $credithours =  $strcredithours.': '.$certificate->printhours;
 // } else $credithours = '';
@@ -116,7 +96,13 @@ if($certificate->trainer == ''){
 
 
 $customcertificatedate = '';
-$customdate = $certificate->customdate;
+
+if($certificate->customdate > 0) {
+    $customdate = $certificate->customdate;
+} else {
+    $customdate = certificate_get_date($certificate, $certrecord, $course);
+}
+
 if($certificate->customdate > 0)    {
         if ($certificate->datefmt == 1)    {
                 $customcertificatedate = str_replace(' 0', ' ', strftime('%B %d, %Y', $customdate));
@@ -149,24 +135,35 @@ if($certificate->customdate2 > 0)    {
         }
 }
 
-
+//print_object($certificatedate);
+//print_object($customcertificatedate);
+//print_object($customdate);
 // Print Custom date
-if($certificate->customdate == 0){
-        if(empty($certificatedate))
-        {
-                $customdate = ""." blank";
+$certificateprintdate = "";
+if($customdate == 0){
+        if(empty($certificatedate)) {
+                $customdate = ""." ";
         } else {
                 $customdate = " on ".$certificatedate;
+                $certificateprintdate = $certificatedate;
         }
 } else {
         if($certificate->customdate2 == 0){
                 $customdate = " on ".$customcertificatedate;
+                $certificateprintdate = $customcertificatedate;
         } else {
                 $customdate = " from ".$customcertificatedate. " to ".$customcertificatedate2;
+                $certificateprintdate = $customcertificatedate;
         }
 }
+//print_object($certificateprintdate);
+$certificateprintcode = (certificate_get_code($certificate, $certrecord));
+//$testsql = $DB->execute("SELECT * FROM mdl_certificate_issues where mdl_certificate_issues.code='$certificateprintcode'");
 
+// This is to update the certificateprintdate column, so that it can be used in the configurable report
+$DB->execute("UPDATE mdl_certificate_issues SET mdl_certificate_issues.certificateprintdate='$certificateprintdate' WHERE mdl_certificate_issues.code='$certificateprintcode'");
 
+//print_object($certificateprintcode);
 // Define variables
 // Landscape
 if ($certificate->orientation == 'L') {
@@ -232,13 +229,7 @@ certificate_print_text($pdf, $x, $y + 100, 'C', 'freeserif', '', 14, $credithour
 certificate_print_text($pdf, $x, $y + 110, 'C', 'freeserif', '', 14, $trainersname);
 certificate_print_text($pdf, $x, $y + 120, 'C', 'freeserif', '', 14, $location);
 
-//certificate_print_text($pdf, $x, $y + 92, 'C', 'freeserif', '', 14,  certificate_get_date($certificate, $certrecord, $course));
-//certificate_print_text($pdf, $x, $y + 102, 'C', 'freeserif', '', 10, certificate_get_grade($certificate, $course));
-//certificate_print_text($pdf, $x, $y + 112, 'C', 'freeserif', '', 10, certificate_get_outcome($certificate, $course));
-//if ($certificate->printhours) {
-//certificate_print_text($pdf, $x, $y + 122, 'C', 'freeserif', '', 10, get_string('credithours', 'certificate') . ': ' . $certificate->printhours);
-//}
-certificate_print_text($pdf, $x, $codey, 'C', 'freeserif', '', 10, get_string('verificationcode','certificate').certificate_get_code($certificate, $certrecord));
+certificate_print_text($pdf, $x, $codey, 'C', 'freeserif', '', 10, get_string('verificationcode','certificate').$certificateprintcode);
 certificate_print_text($pdf, $x, $codey+8, 'C', 'freeserif', '', 9, get_string('bottomline','certificate'));
 $i = 0;
 if ($certificate->printteacher) {
