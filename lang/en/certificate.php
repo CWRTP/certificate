@@ -223,3 +223,4 @@ $string['typeletter_CEUs']='Letter CEUs';
 $string['typeletter_NoCEUs']='Letter No CEUs';
 $string['bottomline'] = 'This training meets the standards & criteria specified in IAC 645-281.3, continuing education for social workers. This certificate and program information must be retained for a period of 4 years.';
 $string['verificationcode'] = 'Verification Code: ';
+$string['crontask'] = 'Certificate auto-generate jobs';
