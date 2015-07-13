@@ -241,7 +241,8 @@ certificate_print_text($pdf, $x, $y + 120, 'C', 'freeserif', '', 14, $location);
 certificate_print_text($pdf, $x, $codey, 'C', 'freeserif', '', 10, get_string('verificationcode','certificate').certificate_get_code($certificate, $certrecord));
 $i = 0;
 if ($certificate->printteacher) {
-    $context = get_context_instance(CONTEXT_MODULE, $cm->id);
+    //$context = get_context_instance(CONTEXT_MODULE, $cm->id);
+    $context = CONTEXT_MODULE::instance($cm->id);
     if ($teachers = get_users_by_capability($context, 'mod/certificate:printteacher', '', $sort = 'u.lastname ASC', '', '', '', '', false)) {
         foreach ($teachers as $teacher) {
             $i++;

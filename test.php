@@ -22,7 +22,8 @@ foreach($cronlist as $cron)
 	echo $cm->id.'</br>';
 	$user = $DB->get_record('user', array('id'=>$cron->userid));
 	echo 'username: '.$user->firstname.' '.$user->lastname.'</br>';
-	$context = get_context_instance(CONTEXT_MODULE, $cron->cmid);
+	//$context = get_context_instance(CONTEXT_MODULE, $cron->cmid);
+        $context = CONTEXT_MODULE::instance($cron->cmid);
 	
 	// Create new certificate record
 	$certrecord = certificate_prepare_issue($course, $user, $certificate);

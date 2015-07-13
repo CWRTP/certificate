@@ -70,7 +70,8 @@ if (!$certificate = $DB->get_record('certificate', array('id'=> $cm->instance)))
 require_course_login($course->id, false, $cm);
 
 // Check capabilities
-$context = get_context_instance(CONTEXT_MODULE, $cm->id);
+//$context = get_context_instance(CONTEXT_MODULE, $cm->id);
+$context = CONTEXT_MODULE::instance($cm->id);
 require_capability('mod/certificate:manage', $context);
 
 // Declare some variables
@@ -96,7 +97,11 @@ if (!$download) {
     $page = $perpage = 0;
 }
 
-add_to_log($course->id, 'certificate', 'view', "report.php?id=$cm->id", '$certificate->id', $cm->id);
+//add_to_log($course->id, 'certificate', 'view', "report.php?id=$cm->id", '$certificate->id', $cm->id);
+//Replacing add_to_log() with $event->trigger()
+$eventparams = array('objectid' => $certificate->id, 'context' => context_module::instance($cm->id));
+$event = \mod_certificate\event\certificate_view::create($eventparams);
+$event->trigger();
 
 // Ensure there are issues to display, if not display notice
 if (!$users = certificate_get_issues($certificate->id, $DB->sql_fullname(), $groupmode, $cm, $page, $perpage)) {

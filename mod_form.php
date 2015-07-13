@@ -219,4 +219,42 @@ class mod_certificate_mod_form extends moodleform_mod {
 
         return $errors;
     }
+
+    /**
+     * 
+     * @return type
+     */
+    public function get_data() {
+        $data = parent::get_data();
+        if ($data) {
+            if (!empty($data->completionunlocked)) {
+                // Turn off completion settings if the checkboxes aren't ticked
+                $autocompletion = !empty($data->completion) &&
+                        $data->completion == COMPLETION_TRACKING_AUTOMATIC;
+                if (!$autocompletion || empty($data->completionsubmit)) {
+                    $data->completionsubmit = 0;
+                }
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * 
+     * @return type
+     */
+    public function add_completion_rules() {
+        $mform = & $this->_form;
+        $mform->addElement('checkbox', 'completionsubmit', '', get_string('completionsubmit', 'certificate'));
+        return array('completionsubmit');
+    }
+
+    /**
+     * 
+     * @param type $data
+     * @return type
+     */
+    public function completion_rule_enabled($data) {
+        return !empty($data['completionsubmit']);
+    }
 }

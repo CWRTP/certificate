@@ -62,6 +62,7 @@ New type folders can be added to the certificate/type folder. The name of the fo
 $string['certify'] = 'certifies that';
 $string['code'] = 'Code';
 $string['completiondate'] = 'Course Completion';
+$string['completionsubmit'] = 'View as completed if the certificate is issued';
 $string['course'] = 'For';
 $string['coursegrade'] = 'Course Grade';
 $string['coursename'] = 'Course';
@@ -224,3 +225,5 @@ $string['typeletter_NoCEUs']='Letter No CEUs';
 $string['bottomline'] = 'This training meets the standards & criteria specified in IAC 645-281.3, continuing education for social workers. This certificate and program information must be retained for a period of 4 years.';
 $string['verificationcode'] = 'Verification Code: ';
 $string['crontask'] = 'Certificate auto-generate jobs';
+// Labels for event triggers
+$string['eventviewcertificate'] = 'View Certificate';

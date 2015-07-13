@@ -57,7 +57,11 @@ $PAGE->set_title($strcertificates);
 $PAGE->set_heading($course->fullname);
 
 // Add the page view to the Moodle log
-add_to_log($course->id, 'certificate', 'view all', 'index.php?id='.$course->id, '');
+//add_to_log($course->id, 'certificate', 'view all', 'index.php?id='.$course->id, '');
+//Replacing add_to_log() with $event->trigger()
+$eventparams = array('context' => context_course::instance($course->id));
+$event = \mod_certificate\event\course_module_instance_list_viewed::create($eventparams);
+$event->trigger();
 
 // Get the certificates, if there are none display a notice
 if (!$certificates = get_all_instances_in_course('certificate', $course)) {

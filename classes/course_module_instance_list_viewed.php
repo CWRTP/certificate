@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of the Certificate module for Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -14,20 +13,15 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-
 /**
- * Code fragment to define the version of the certificate module
+ * This page lists all the instances of certificate in a particular course
  *
  * @package    mod
  * @subpackage certificate
  * @copyright  Mark Nelson <markn@moodle.com>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or late
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-$plugin->version   = 2015050500; // The current module version (Date: YYYYMMDDXX)
-$plugin->requires  = 2014051200; // Requires this Moodle version
-$plugin->cron      = 1; // Period for cron to check this module (secs)
-$plugin->component = 'mod_certificate';
-
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = "Stable"; // User-friendly version number
+namespace mod_certificate\event;
+defined('MOODLE_INTERNAL') || die();
+class course_module_instance_list_viewed extends \core\event\course_module_instance_list_viewed {
+}

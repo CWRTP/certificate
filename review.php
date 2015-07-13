@@ -48,7 +48,8 @@ if (!$certificate = $DB->get_record('certificate', array('id'=> $cm->instance)))
 require_course_login($course->id, true, $cm);
 
 // Check the capabilities
-$context = get_context_instance(CONTEXT_MODULE, $cm->id);
+//$context = get_context_instance(CONTEXT_MODULE, $cm->id);
+$context = CONTEXT_MODULE::instance($cm->id);
 require_capability('mod/certificate:view', $context);
 
 // Initialize $PAGE, compute blocks
