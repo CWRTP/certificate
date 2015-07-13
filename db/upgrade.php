@@ -485,10 +485,9 @@ function xmldb_certificate_upgrade($oldversion=0) {
     }
 
     if ($oldversion < 2015050500) {
-        $table = new XMLDBTable('certificate');
+        $table = new xmldb_table('certificate');
 
-        $field = new XMLDBField('completionsubmit');
-        $field->setAttributes(XMLDB_TYPE_CHAR, '1', null, null, null, null, null, null, 'customdate2');
+        $field = new xmldb_field('completionsubmit', XMLDB_TYPE_CHAR, '1', null, null, null, null, null, null, 'customdate2');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
