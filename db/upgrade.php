@@ -496,5 +496,21 @@ function xmldb_certificate_upgrade($oldversion=0) {
         upgrade_mod_savepoint(true, 2015050500, 'certificate');
     }
 
+    // Add Certificate print date for reporting  
+    if ($oldversion < 2015092101) {
+
+        $table = new xmldb_table('certificate_issues');
+        $field = new xmldb_field('certificateprintdate', XMLDB_TYPE_CHAR, '22', null, null, null, null, null, null, 'timecreated');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $sql = "UPDATE {certificate_issues}
+                SET certificateprintdate = timecreated
+                WHERE certificateprintdate IS NULL";
+        $DB->execute($sql);
+        
+        // Certificate savepoint reached
+        upgrade_mod_savepoint(true, 2015092101, 'certificate');
+    }
     return true;
 }
