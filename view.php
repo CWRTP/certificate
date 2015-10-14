@@ -66,7 +66,7 @@ $PAGE->set_title(format_string($certificate->name));
 $PAGE->set_heading(format_string($course->fullname));
 
 // Set the context
-$context = get_context_instance(CONTEXT_MODULE, $cm->id);
+$context = context_module::instance($cm->id);
 
 if (($edit != -1) and $PAGE->user_allowed_editing()) {
      $USER->editing = $edit;
