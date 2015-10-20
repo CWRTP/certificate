@@ -472,9 +472,11 @@ function certificate_email_teachers_html($info) {
  * @param stdClass $certificate
  * @param stdClass $certrecord
  * @param stdClass $context
+ * @param string $filecontents the PDF file contents
+ * @param string $filename
  * @return bool Returns true if mail was sent OK and false if there was an error.
  */
-function certificate_email_student($course, $certificate, $certrecord, $context) {
+function certificate_email_student($course, $certificate, $certrecord, $context, $filecontents, $filename) {
     global $USER;
 
     // Get teachers
@@ -486,7 +488,7 @@ function certificate_email_student($course, $certificate, $certrecord, $context)
 
     // If we haven't found a teacher yet, look for a non-editing teacher in this course.
     if (empty($teacher) && $users = get_users_by_capability($context, 'moodle/course:update', 'u.*', 'u.id ASC',
-        '', '', '', '', false, true)) {
+            '', '', '', '', false, true)) {
         $users = sort_by_roleassignment_authority($users, $context);
         $teacher = array_shift($users);
     }
@@ -507,24 +509,22 @@ function certificate_email_student($course, $certificate, $certrecord, $context)
     // Make the HTML version more XHTML happy  (&amp;)
     $messagehtml = text_to_html(get_string('emailstudenttext', 'certificate', $info));
 
-    // Remove full-stop at the end if it exists, to avoid "..pdf" being created and being filtered by clean_filename
-    $certname = rtrim($certificate->name, '.');
-    $filename = clean_filename("$certname.pdf");
-
-    // Get hashed pathname
-    $fs = get_file_storage();
-
-    $component = 'mod_certificate';
-    $filearea = 'issue';
-    $filepath = '/';
-    $files = $fs->get_area_files($context->id, $component, $filearea, $certrecord->id);
-    foreach ($files as $f) {
-        $filepathname = $f->get_contenthash();
+    $tempdir = make_temp_directory('certificate/attachment');
+    if (!$tempdir) {
+        return false;
     }
-    $attachment = 'filedir/'.certificate_path_from_hash($filepathname).'/'.$filepathname;
-    $attachname = $filename;
 
-    return email_to_user($USER, $from, $subject, $message, $messagehtml, $attachment, $attachname);
+    $tempfile = $tempdir.'/'.md5(sesskey().microtime().$USER->id.'.pdf');
+    $fp = fopen($tempfile, 'w+');
+    fputs($fp, $filecontents);
+    fclose($fp);
+
+    $prevabort = ignore_user_abort(true);
+    $result = email_to_user($USER, $from, $subject, $message, $messagehtml, $tempfile, $filename);
+    @unlink($tempfile);
+    ignore_user_abort($prevabort);
+
+    return $result;
 }
 
 /**
@@ -713,55 +713,55 @@ function certificate_get_issue($course, $user, $certificate, $cm) {
  * @return stdClass the users
  */
 function certificate_get_issues($certificateid, $sort="ci.timecreated ASC", $groupmode, $cm, $page = 0, $perpage = 0) {
-    global $CFG, $DB;
-
+    global $CFG, $DB, $USER;
     // get all users that can manage this certificate to exclude them from the report.
     //$context = get_context_instance(CONTEXT_MODULE, $cm->id);
     $context = CONTEXT_MODULE::instance($cm->id);
 
     $conditionssql = '';
     $conditionsparams = array();
-    if ($certmanagers = array_keys(get_users_by_capability($context, 'mod/certificate:manage', 'u.id'))) {
-        list($sql, $params) = $DB->get_in_or_equal($certmanagers, SQL_PARAMS_NAMED, 'cert');
-        $conditionssql .= "AND NOT u.id $sql \n";
-        $conditionsparams += $params;
-    }
 
-    $restricttogroup = false;
+    // Get all users that can manage this certificate to exclude them from the report.
+    $certmanager = array_keys(get_users_by_capability($context, 'mod/certificate:manage', 'u.id'));
+    $certmanagers = array_merge($certmanager, array_keys(get_admins()));
+    list($sql, $params) = $DB->get_in_or_equal($certmanagers, SQL_PARAMS_NAMED, 'cert');
+    $conditionssql .= "AND NOT u.id $sql \n";
+    $conditionsparams += $params;
+
     if ($groupmode) {
+        $canaccessallgroups = has_capability('moodle/site:accessallgroups', $context);
         $currentgroup = groups_get_activity_group($cm);
+
+        // If we are viewing all participants and the user does not have access to all groups then return nothing.
+        if (!$currentgroup && !$canaccessallgroups) {
+            return array();
+        }
+
         if ($currentgroup) {
-            $restricttogroup = true;
+            if (!$canaccessallgroups) {
+                // Guest users do not belong to any groups.
+                if (isguestuser()) {
+                    return array();
+                }
+
+                // Check that the user belongs to the group we are viewing.
+                $usersgroups = groups_get_all_groups($cm->course, $USER->id, $cm->groupingid);
+                if ($usersgroups) {
+                    if (!isset($usersgroups[$currentgroup])) {
+                        return array();
+                    }
+                } else { // They belong to no group, so return an empty array.
+                    return array();
+                }
+            }
             $groupusers = array_keys(groups_get_members($currentgroup, 'u.*'));
             if (empty($groupusers)) {
                 return array();
             }
+            list($sql, $params) = $DB->get_in_or_equal($groupusers, SQL_PARAMS_NAMED, 'grp');
+            $conditionssql .= "AND u.id $sql ";
+            $conditionsparams += $params;
         }
-    }
-
-    $restricttogrouping = false;
-
-    // if groupmembersonly used, remove users who are not in any group
-    if (!empty($CFG->enablegroupings) and $cm->groupmembersonly) {
-        if ($groupingusers = groups_get_grouping_members($cm->groupingid, 'u.id', 'u.id')) {
-            $restricttogrouping = true;
-        } else {
-            return array();
-        }
-    }
-
-    if ($restricttogroup || $restricttogrouping) {
-        if ($restricttogroup) {
-            $allowedusers = $groupusers;
-        } else if ($restricttogroup && $restricttogrouping) {
-            $allowedusers = array_intersect($groupusers, $groupingusers);
-        } else  {
-            $allowedusers = $groupingusers;
-        }
-
-        list($sql, $params) = $DB->get_in_or_equal($allowedusers, SQL_PARAMS_NAMED, 'grp');
-        $conditionssql .= "AND u.id $sql \n";
-        $conditionsparams += $params;
     }
 
     $page = (int) $page;
@@ -770,9 +770,9 @@ function certificate_get_issues($certificateid, $sort="ci.timecreated ASC", $gro
     // Get all the users that have certificates issued, should only be one issue per user for a certificate
     $allparams = $conditionsparams + array('certificateid' => $certificateid);
 
-    $namefields = get_all_user_name_fields(true, 'u');
-    $picturefields = user_picture::fields('u');
-    $users = $DB->get_records_sql("SELECT u.id, $namefields, $picturefields, ci.code, ci.timecreated
+    // The picture fields also include the name fields for the user.
+    $picturefields = user_picture::fields('u', get_extra_user_fields($context));
+    $users = $DB->get_records_sql("SELECT $picturefields, u.idnumber, ci.code, ci.timecreated
                                      FROM {user} u
                                INNER JOIN {certificate_issues} ci
                                        ON u.id = ci.userid
@@ -781,11 +781,11 @@ function certificate_get_issues($certificateid, $sort="ci.timecreated ASC", $gro
                                  ORDER BY {$sort}", $allparams, $page * $perpage, $perpage);
 
     return $users;
-}
+} 
+
 
 /**
- * Returns a list of previously issued certificates--used for reissue.
- *
+ * Returns a list of previously issued certificates--used for reissue.*
  * @param int $certificateid
  * @return stdClass the attempts else false if none found
  */
@@ -854,30 +854,60 @@ function certificate_print_attempts($course, $certificate, $attempts) {
  * @return int the total time spent in seconds
  */
 function certificate_get_course_time($courseid) {
-    global $CFG, $USER;
+    global $CFG, $DB, $USER;
 
-    set_time_limit(0);
+    $logmanager = get_log_manager();
+    $readers = $logmanager->get_readers();
+    $enabledreaders = get_config('tool_log', 'enabled_stores');
+    $enabledreadersArray = explode(',', $enabledreaders);
+
+    // Go through all the readers until we find one that we can use.
+    foreach ($enabledreadersArray as $enabledreader) {
+        $reader = $readers[$enabledreader];
+        if ($reader instanceof \logstore_legacy\log\store) {
+            $logtable = 'log';
+            $coursefield = 'course';
+            $timefield = 'time';
+            break;
+        } else if ($reader instanceof \core\log\sql_internal_reader) {
+            $logtable = $reader->get_internal_log_table_name();
+            $coursefield = 'courseid';
+            $timefield = 'timecreated';
+            break;
+        }
+    }
+
+    // If we didn't find a reader then return 0.
+    if (!isset($logtable)) {
+        return 0;
+    }
+
+    $sql = "SELECT id, $timefield
+              FROM {{$logtable}}
+             WHERE userid = :userid
+               AND $coursefield = :courseid
+          ORDER BY $timefield ASC";
+    $params = array('userid' => $USER->id, 'courseid' => $courseid);
 
     $totaltime = 0;
-    $sql = "l.course = :courseid AND l.userid = :userid";
-    if ($logs = get_logs($sql, array('courseid' => $courseid, 'userid' => $USER->id), 'l.time ASC', '', '', $totalcount)) {
+    if ($logs = $DB->get_recordset_sql($sql, $params)) {
         foreach ($logs as $log) {
             if (!isset($login)) {
                 // For the first time $login is not set so the first log is also the first login
-                $login = $log->time;
-                $lasthit = $log->time;
+                $login = $log->$timefield;
+                $lasthit = $log->$timefield;
                 $totaltime = 0;
             }
-            $delay = $log->time - $lasthit;
+            $delay = $log->$timefield - $lasthit;
             if ($delay > ($CFG->sessiontimeout * 60)) {
                 // The difference between the last log and the current log is more than
                 // the timeout Register session value so that we have found a session!
-                $login = $log->time;
+                $login = $log->$timefield;
             } else {
                 $totaltime += $delay;
             }
             // Now the actual log became the previous log for the next cycle
-            $lasthit = $log->time;
+            $lasthit = $log->$timefield;
         }
 
         return $totaltime;
@@ -1558,4 +1588,37 @@ function certificate_scan_image_dir($path) {
         }
     }
     return $options;
+}
+
+/**
+ * Get normalised certificate file name without file extension.
+ *
+ * @param stdClass $certificate
+ * @param stdClass $cm
+ * @param stdClass $course
+ * @return string file name without extension
+ */
+function certificate_get_certificate_filename($certificate, $cm, $course) {
+    $coursecontext = context_course::instance($course->id);
+    $coursename = format_string($course->shortname, true, array('context' => $coursecontext));
+
+    $context = context_module::instance($cm->id);
+    $name = format_string($certificate->name, true, array('context' => $context));
+
+    $filename = $coursename . '_' . $name;
+    $filename = core_text::entities_to_utf8($filename);
+    $filename = strip_tags($filename);
+    $filename = rtrim($filename, '.');
+
+    // Ampersand is not a valid filename char, let's replace it with something else.
+    $filename = str_replace('&', '_', $filename);
+
+    $filename = clean_filename($filename);
+
+    if (empty($filename)) {
+        // This is weird, but we need some file name.
+        $filename = 'certificate';
+    }
+
+    return $filename;
 }

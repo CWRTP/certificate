@@ -104,7 +104,8 @@ if (empty($action)) { // Not displaying PDF
     echo $OUTPUT->header();
 
     /// find out current groups mode
-    groups_print_activity_menu($cm, $CFG->wwwroot . '/mod/certificate/view.php?id=' . $cm->id);
+    $viewurl = new moodle_url('/mod/certificate/view.php', array('id' => $cm->id));
+    groups_print_activity_menu($cm, $viewurl);
     $currentgroup = groups_get_activity_group($cm);
     $groupmode = groups_get_activity_groupmode($cm);
 
@@ -146,21 +147,27 @@ if (empty($action)) { // Not displaying PDF
     echo $OUTPUT->footer($course);
     exit;
 } else { // Output to pdf
-    // Remove full-stop at the end if it exists, to avoid "..pdf" being created and being filtered by clean_filename
-    $certname = rtrim($certificate->name, '.');
-    $filename = clean_filename("$certname.pdf");
+
+    // No debugging here, sorry.
+    $CFG->debugdisplay = 0;
+    @ini_set('display_errors', '0');
+    @ini_set('log_errors', '1');
+
+    $filename = certificate_get_certificate_filename($certificate, $cm, $course) . '.pdf';
+    // PDF contents are now in $file_contents as a string.
+    $filecontents = $pdf->Output('', 'S');
     if ($certificate->savecert == 1) {
-        // PDF contents are now in $file_contents as a string
-       $file_contents = $pdf->Output('', 'S');
-       certificate_save_pdf($file_contents, $certrecord->id, $filename, $context->id);
+        certificate_save_pdf($filecontents, $certrecord->id, $filename, $context->id);
     }
     if ($certificate->delivery == 0) {
-        $pdf->Output($filename, 'I'); // open in browser
+        // Open in browser.
+        send_file($filecontents, $filename, 0, 0, true, false, 'application/pdf');
     } elseif ($certificate->delivery == 1) {
-        $pdf->Output($filename, 'D'); // force download when create
+        // Force download.
+        send_file($filecontents, $filename, 0, 0, true, true, 'application/pdf');
     } elseif ($certificate->delivery == 2) {
-        certificate_email_student($course, $certificate, $certrecord, $context);
-        $pdf->Output($filename, 'I'); // open in browser
-        $pdf->Output('', 'S'); // send
+        certificate_email_student($course, $certificate, $certrecord, $context, $filecontents, $filename);
+        // Open in browser after sending email.
+        send_file($filecontents, $filename, 0, 0, true, false, 'application/pdf');
     }
 }
