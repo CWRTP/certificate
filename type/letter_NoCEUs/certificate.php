@@ -46,7 +46,7 @@ $classname = '';
 if($certificate->customtext){
          $classname = $certificate->customtext;
 } else {
-        $classname = $certrecord->classname;
+        $classname = $course->fullname;
 }
 //$lenClassname = strlen($classname);
 //$lenCN = intval($lenClassname);

@@ -88,7 +88,7 @@ $studentname = '';
 //$studentname = $certrecord->studentname;
 $studentname = fullname($USER);
 $classname = '';
-$classname = $certrecord->classname;
+$classname = $course->fullname;
 
 // Print the custom class name
 if($certificate->customtext)
@@ -96,7 +96,7 @@ if($certificate->customtext)
 	$classname = $certificate->customtext;
 }
 else {
-	$classname = $certrecord->classname;
+	$classname = $course->fullname;
 }
 $lenClassname = strlen($classname);
 $lenCN = intval($lenClassname);
