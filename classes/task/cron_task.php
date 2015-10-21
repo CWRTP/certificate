@@ -9,6 +9,6 @@ class cron_task extends \core\task\scheduled_task {
 
     public function execute() {
         global $CFG;
-        require_once($CFG->dirroot.'/local/certificate/auto.php');	
+        require_once($CFG->dirroot.'/mod/certificate/cron.php');	
 	    }
 }
