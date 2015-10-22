@@ -47,8 +47,10 @@ class mod_certificate_mod_form extends moodleform_mod {
             $mform->setType('name', PARAM_CLEAN);
         }
         $mform->addRule('name', null, 'required', null, 'client');
+        
+        // check moodle version to decide either add_intro_editor or standard_intro_elements needs to be used
+        (substr($CFG->release,0,3)==2.7?$this->add_intro_editor(false, get_string('intro', 'certificate')):$this->standard_intro_elements(get_string('intro', 'certificate')));
 
-	$this->standard_intro_elements(get_string('intro', 'certificate'));
         // Issue options
         $mform->addElement('header', 'issueoptions', get_string('issueoptions', 'certificate'));
         $ynoptions = array( 0 => get_string('no'), 1 => get_string('yes'));
