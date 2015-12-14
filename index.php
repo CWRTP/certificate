@@ -72,7 +72,8 @@ if (!$certificates = get_all_instances_in_course('certificate', $course)) {
 }
 
 if ($usesections = course_format_uses_sections($course->format)) {
-    $sections = get_all_sections($course->id);
+//    $sections = get_all_sections($course->id); // function get_all_sections is deprecated
+      $sections = get_fast_modinfo($course->id)->get_section_info_all();
 }
 
 $table = new html_table();

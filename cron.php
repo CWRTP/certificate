@@ -1,11 +1,11 @@
 <?php
-define('CLI_SCRIPT', true);
+//define('CLI_SCRIPT', true);
 require_once('/var/www/html/moodle/config.php');
 require_once('/var/www/html/moodle/course/lib.php');
 require_once('/var/www/html/moodle/grade/lib.php');
 require_once('/var/www/html/moodle/grade/querylib.php');
 require_once('/var/www/html/moodle/lib/pdflib.php');
-require_once('/var/www/html/moodle/lib/conditionlib.php');
+//require_once('/var/www/html/moodle/lib/conditionlib.php');
 require_once('/var/www/html/moodle/lib/adodb/adodb.inc.php');
 require_once('/var/www/html/moodle/mod/certificate/lib.php');
 
@@ -69,8 +69,8 @@ function local_certificate() {
                     $context = CONTEXT_MODULE::instance($cm->id);
 
                     // now create any certs
-                    $ci = new condition_info($cm);
-                    $available = $ci->is_available($_info, false, $student->id);
+		    $info = new \core_availability\info_module($cm);
+	            $available = $cm->availableinfo;
                     if ($available) {
                         $USER = $student;
 			if ($certificate->requiredtime && !has_capability('mod/certificate:manage', $context)) {
