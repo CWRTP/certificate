@@ -209,8 +209,9 @@ function xmldb_certificate_upgrade($oldversion=0) {
 
     // The Moodle 2.0 CVS certificate version sets it to 2011110101, if the user performed an upgrade
     // then this upgrade will take care of several issues, if it's a fresh install then nothing is done.
-    if ($oldversion < 2011110102) {
-        require_once($CFG->libdir.'/conditionlib.php');
+
+    if ($oldversion < 2015121605) {
+        //require_once($CFG->libdir.'/conditionlib.php');
 
         $table = new xmldb_table('certificate');
 
@@ -247,8 +248,8 @@ function xmldb_certificate_upgrade($oldversion=0) {
                         // Not valid skip it
                         continue;
                     }
-                    $condition_info = new condition_info($cm, CONDITION_MISSING_EVERYTHING);
-                    $condition_info->add_grade_condition($gradeitem->id, $cert->requiredgrade, '110');
+                    $ci = new \core_availability\info_module($cm, CONDITION_MISSING_EVERYTHING);
+      	            $ci->add_grade_condition($gradeitem->id, $cert->requiredgrade, '110');
                 }
             }
             // Fresh installs won't have this table, but upgrades will
@@ -289,13 +290,15 @@ function xmldb_certificate_upgrade($oldversion=0) {
                         // Not valid skip it
                         continue;
                     }
-                    $condition_info = new condition_info($cm, CONDITION_MISSING_EVERYTHING);
-                    $condition_info->add_grade_condition($gradeitem->id, $link->linkgrade, '110', true);
+                    
+			$ci = new \core_availability\info_module($cm, CONDITION_MISSING_EVERYTHING);
+			$ci->add_grade_condition($gradeitem->id, $link->linkgrade, '110', true);
                 }
             }
         }
         // Certificate savepoint reached
-        upgrade_mod_savepoint(true, 2011110102, 'certificate');
+        upgrade_mod_savepoint(true, 2015121605, 'certificate');
+		
     }
 
     // Note - the date has not changed as it has been set in the future, so I am incrementing
