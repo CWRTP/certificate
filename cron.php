@@ -87,9 +87,13 @@ function local_certificate() {
                         $file_contents = $pdf->Output('', 'S');
                         certificate_save_pdf($file_contents, $certrecord->id, $filename, $context->id);
 
-                        //certificate_email_student($course, $certificate, $certrecord, $context);
-                        //$pdf->Output('', 'S'); // send
-                        //add_to_log($course->id, 'certificate', 'email send', "con.php", $certificate->id, $student->id);
+						//certificate_email_student($course, $certificate, $certrecord, $context);
+						//$pdf->Output('', 'S'); // send
+						//add_to_log($course->id, 'certificate', 'email send', "con.php", $certificate->id, $student->id);
+						//Replacing add_to_log() with $event->trigger()
+						$eventparams = array('objectid' => $certificate->id, 'context' => context_module::instance($student->id));
+						$event = \mod_certificate\event\certificate_autogen_log::create($eventparams);
+						$event->trigger();
                         $cert_count++;
                     }
                 }
