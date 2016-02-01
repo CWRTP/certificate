@@ -43,9 +43,8 @@ function local_certificate() {
         $param['courseid'] = $cid;
         $param['guestid'] = $CFG->siteguest;
         $param['roleshortname'] = 'student';
-
-		
-        $students = $DB->get_records_sql("SELECT usr.id, usr.idnumber, usr.firstname, usr.lastname, usr.email FROM {course} c
+		//
+        $students = $DB->get_records_sql("SELECT usr.id, usr.idnumber, usr.firstname, usr.lastname, usr.firstnamephonetic, usr.lastnamephonetic, 			  usr.middlename, usr.alternatename, usr.picture, usr.imagealt, usr.email FROM {course} c
                                 INNER JOIN {context} cx ON c.id = cx.instanceid
                                 AND cx.contextlevel = " . CONTEXT_COURSE . " and c.id = :courseid
                                 INNER JOIN {role_assignments} ra ON cx.id = ra.contextid
@@ -54,30 +53,33 @@ function local_certificate() {
                                 WHERE r.shortname = :roleshortname AND
                                 usr.id <> :guestid AND usr.deleted = 0 AND usr.confirmed = 1
                                 ORDER BY usr.firstname, c.fullname", $param);
+		
         $sql = "SELECT cm.id, cm.instance FROM {course_modules} cm INNER JOIN {certificate} c ON c.id = cm.instance WHERE cm.course = $cid AND cm.module = $module->id AND c.autogen = 1";
         $certmods = $DB->get_records_sql($sql);
+		//
+		
 	foreach ($certmods as $mod) {
-            $certificate = $DB->get_record("certificate", array('id' => $mod->instance , 'autogen' => 1));
+	$certificate = $DB->get_record("certificate", array('id' => $mod->instance , 'autogen' => 1));
             echo "\nCERT: {$certificate->name}\n";
             $cert_count = 0;
             $certificate_issued_users = $DB->get_records("certificate_issues", array('certificateid' => $certificate->id), '', 'userid');
-            foreach ($students as $student) {
+		    foreach ($students as $student) {
                 if (empty($certificate_issued_users) || !array_key_exists($student->id, $certificate_issued_users)) {
-
-                    $modinfo = get_fast_modinfo($course, $student->id);
+					$modinfo = get_fast_modinfo($course, $student->id);
                     $cm = $modinfo->get_cm($mod->id);
                     $context = CONTEXT_MODULE::instance($cm->id);
-
-                    // now create any certs
-		    $info = new \core_availability\info_module($cm);
-	            $available = $cm->availableinfo;
+					// now create any certs
+					$info = new \core_availability\info_module($cm);
+					//$full_info = $info->get_full_information($modinfo);
+					$available = $info->is_available($_info,false,$student->id);
+					//
                     if ($available) {
-                        $USER = $student;
-			if ($certificate->requiredtime && !has_capability('mod/certificate:manage', $context)) {
-			    if (certificate_get_course_time($course->id) < ($certificate->requiredtime * 60)) {
-				continue;
-                            }
-                        }
+						$USER = $student;
+						if ($certificate->requiredtime && !has_capability('mod/certificate:manage', $context)) {
+							if (certificate_get_course_time($course->id) < ($certificate->requiredtime * 60)) {
+								continue;
+									}
+								}
                         $certrecord = certificate_get_issue($course, $student, $certificate, $cm);
                         make_cache_directory('tcpdf');
                         // Load the specific certificate type.
@@ -91,16 +93,16 @@ function local_certificate() {
 						//$pdf->Output('', 'S'); // send
 						//add_to_log($course->id, 'certificate', 'email send', "con.php", $certificate->id, $student->id);
 						//Replacing add_to_log() with $event->trigger()
-						$eventparams = array('objectid' => $certificate->id, 'context' => context_module::instance($student->id));
+						$eventparams = array('objectid' => $certificate->id, 'context' => context_module::instance($course->id));
 						$event = \mod_certificate\event\certificate_autogen_log::create($eventparams);
 						$event->trigger();
                         $cert_count++;
-                    }
-                }
-                echo "Student id = $student->id Certificate Generated\n\n"; 
-            }
+					}
+				echo "Student id = $student->id Certificate Generated  \n\n"; 
+				}            
+			}
         }
-    }
-    echo "\n\n------------- END Plugin ------------------\n";
+	}
+	echo "\n\n------------- END Plugin ------------------\n";
 }
 ?>
