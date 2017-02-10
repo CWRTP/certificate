@@ -60,7 +60,7 @@ function local_certificate() {
 		
 	foreach ($certmods as $mod) {
 	$certificate = $DB->get_record("certificate", array('id' => $mod->instance , 'autogen' => 1));
-            echo "\nCERT: {$certificate->name}\n";
+//            echo "\nCERT: {$certificate->name}\n";
             $cert_count = 0;
             $certificate_issued_users = $DB->get_records("certificate_issues", array('certificateid' => $certificate->id), '', 'userid');
 		    foreach ($students as $student) {
@@ -93,12 +93,15 @@ function local_certificate() {
 						//$pdf->Output('', 'S'); // send
 						//add_to_log($course->id, 'certificate', 'email send', "con.php", $certificate->id, $student->id);
 						//Replacing add_to_log() with $event->trigger()
-						$eventparams = array('objectid' => $certificate->id, 'context' => context_module::instance($course->id));
+						$eventparams = array('objectid' => $certificate->id, 'context' => context_module::instance($cm->id));
 						$event = \mod_certificate\event\certificate_autogen_log::create($eventparams);
 						$event->trigger();
-                        $cert_count++;
+                         $cert_count++;
+                        echo "\n\n--------------------------\nCourse: {$course->shortname}\n";
+                        echo "\nCERT:{$certname}\n";
+                        echo "Student id =$student->id Certificate Generated \n\n";
 					}
-				echo "Student id = $student->id Certificate Generated  \n\n"; 
+			//	echo "Student id = $student->id Certificate Generated  \n\n"; 
 				}            
 			}
         }
