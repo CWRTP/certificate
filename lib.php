@@ -1298,7 +1298,8 @@ function certificate_get_grade($certificate, $course, $userid = null, $valueonly
             }
         } else { // Print the mod grade
             if ($modinfo = certificate_get_mod_grade($course, $certificate->printgrade, $userid)) {
-                $grade = $strprefix . $coursegrade->letter;
+
+
                 $strprefix = '';
                 if (!$valueonly) {
                     $strprefix = $modinfo->name . ' ' . get_string('grade', 'certificate') . ': ';
