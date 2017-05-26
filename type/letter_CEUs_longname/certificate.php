@@ -37,43 +37,52 @@ $grade = '';
 //Print the course grade
 
 $coursegrade = certificate_get_grade($certificate, $course);
-if ($certificate->printgrade == 1 && $certrecord->reportgrade == !null) {
-	$reportgrade = $certrecord->reportgrade;
-	$grade = $strcoursegrade.':  '.$reportgrade;
-}else
-if($certificate->printgrade > 0) {
-	if($certificate->printgrade == 1) {
-		if($certificate->gradefmt == 1) {
-			$grade = $strcoursegrade.':  '.$coursegrade->percentage;
-		}   if($certificate->gradefmt == 2) {
-			$grade = $strcoursegrade.':  '.$coursegrade->points;
-		}   if($certificate->gradefmt == 3) {
-			$grade = $strcoursegrade.':  '.$coursegrade->letter;
+if ($certificate->printgrade == 1 && property_exists($certrecord, 'reportgrade')) {
+    if ($certrecord->reportgrade == !null) {
+        $reportgrade = $certrecord->reportgrade;
+        $grade = $strcoursegrade . ':  ' . $reportgrade;
+    }
 
-		}
-	} else {
-		//Print the mod grade
-        $modinfo = certificate_get_mod_grade($course, $certificate->printgrade);
-		if ($certrecord->reportgrade == !null) {
-			$modgrade = $certrecord->reportgrade;
-			$grade = $modinfo->name.' '.$strgrade.': '.$modgrade;
-		}else
-		if($certificate->printgrade > 1) {
-			if ($certificate->gradefmt == 1) {
-				$grade = $modinfo->name.' '.$strgrade.': '.$modinfo->percentage;
-			}
-			if ($certificate->gradefmt == 2) {
-				$grade = $modinfo->name.' '.$strgrade.': '.$modinfo->points;
-			}
-			if($certificate->gradefmt == 3) {
-				$grade = $modinfo->name.' '.$strgrade.': '.$modinfo->letter;
-			}
-		}
-	}
-}
+}else
+    if ($certificate->printgrade > 0) {
+        if ($certificate->printgrade == 1) {
+            if ($certificate->gradefmt == 1) {
+                $grade = ' ' . $coursegrade->percentage;
+            }
+            if ($certificate->gradefmt == 2) {
+                $grade = '  ' . $coursegrade->points;
+            }
+            if ($certificate->gradefmt == 3) {
+                $grade = ' ' . $coursegrade->letter;
+
+            }
+        } else {
+            //Print the mod grade
+            $modinfo = certificate_get_mod_grade($course, $certificate->printgrade, $USER->id);
+            if (property_exists($certrecord, 'reportgrade')) {
+                if ($certrecord->reportgrade == !null) {
+                    $modgrade = $certrecord->reportgrade;
+                    $grade = $modinfo->name . ' ' . $strgrade . ': ' . $modgrade;
+                }
+            } else
+                if ($certificate->printgrade > 1) {
+                    if ($certificate->gradefmt == 1) {
+                        $grade = $modinfo->name . ' ' . $modinfo->percentage;
+                    }
+                    if ($certificate->gradefmt == 2) {
+                        $grade = $modinfo->name . ' ' . $modinfo->points;
+                    }
+                    if ($certificate->gradefmt == 3) {
+                        $grade = $modinfo->name . ' ' . $modinfo->letter;
+                    }
+                }
+        }
+    }
 //Print the outcome
 $outcome = '';
-$outcomeinfo = certificate_get_outcome($course, $certificate->printoutcome);
+if ($certificate->printoutcome) {
+    $outcomeinfo = certificate_get_outcome($course, $certificate->printoutcome);
+}
 if($certificate->printoutcome > 0) {
 	$outcome = $outcomeinfo->name.': '.$outcomeinfo->grade;
 }
