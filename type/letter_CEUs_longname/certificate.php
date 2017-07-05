@@ -35,44 +35,54 @@ $certificatedate = certificate_get_date($certificate, $certrecord, $course);
 //Grade formatting
 $grade = '';
 //Print the course grade
-$coursegrade = certificate_print_course_grade($course);
-if ($certificate->printgrade == 1 && $certrecord->reportgrade == !null) {
-	$reportgrade = $certrecord->reportgrade;
-	$grade = $strcoursegrade.':  '.$reportgrade;
-}else
-if($certificate->printgrade > 0) {
-	if($certificate->printgrade == 1) {
-		if($certificate->gradefmt == 1) {
-			$grade = $strcoursegrade.':  '.$coursegrade->percentage;
-		}   if($certificate->gradefmt == 2) {
-			$grade = $strcoursegrade.':  '.$coursegrade->points;
-		}   if($certificate->gradefmt == 3) {
-			$grade = $strcoursegrade.':  '.$coursegrade->letter;
 
-		}
-	} else {
-		//Print the mod grade
-		$modinfo = certificate_print_mod_grade($course, $certificate->printgrade);
-		if ($certrecord->reportgrade == !null) {
-			$modgrade = $certrecord->reportgrade;
-			$grade = $modinfo->name.' '.$strgrade.': '.$modgrade;
-		}else
-		if($certificate->printgrade > 1) {
-			if ($certificate->gradefmt == 1) {
-				$grade = $modinfo->name.' '.$strgrade.': '.$modinfo->percentage;
-			}
-			if ($certificate->gradefmt == 2) {
-				$grade = $modinfo->name.' '.$strgrade.': '.$modinfo->points;
-			}
-			if($certificate->gradefmt == 3) {
-				$grade = $modinfo->name.' '.$strgrade.': '.$modinfo->letter;
-			}
-		}
-	}
-}
+$coursegrade = certificate_get_grade($certificate, $course);
+if ($certificate->printgrade == 1 && property_exists($certrecord, 'reportgrade')) {
+    if ($certrecord->reportgrade == !null) {
+        $reportgrade = $certrecord->reportgrade;
+        $grade = $strcoursegrade . ':  ' . $reportgrade;
+    }
+
+}else
+    if ($certificate->printgrade > 0) {
+        if ($certificate->printgrade == 1) {
+            if ($certificate->gradefmt == 1) {
+                $grade = ' ' . $coursegrade->percentage;
+            }
+            if ($certificate->gradefmt == 2) {
+                $grade = '  ' . $coursegrade->points;
+            }
+            if ($certificate->gradefmt == 3) {
+                $grade = ' ' . $coursegrade->letter;
+
+            }
+        } else {
+            //Print the mod grade
+            $modinfo = certificate_get_mod_grade($course, $certificate->printgrade, $USER->id);
+            if (property_exists($certrecord, 'reportgrade')) {
+                if ($certrecord->reportgrade == !null) {
+                    $modgrade = $certrecord->reportgrade;
+                    $grade = $modinfo->name . ' ' . $strgrade . ': ' . $modgrade;
+                }
+            } else
+                if ($certificate->printgrade > 1) {
+                    if ($certificate->gradefmt == 1) {
+                        $grade = $modinfo->name . ' ' . $modinfo->percentage;
+                    }
+                    if ($certificate->gradefmt == 2) {
+                        $grade = $modinfo->name . ' ' . $modinfo->points;
+                    }
+                    if ($certificate->gradefmt == 3) {
+                        $grade = $modinfo->name . ' ' . $modinfo->letter;
+                    }
+                }
+        }
+    }
 //Print the outcome
 $outcome = '';
-$outcomeinfo = certificate_print_outcome($course, $certificate->printoutcome);
+if ($certificate->printoutcome) {
+    $outcomeinfo = certificate_get_outcome($course, $certificate->printoutcome);
+}
 if($certificate->printoutcome > 0) {
 	$outcome = $outcomeinfo->name.': '.$outcomeinfo->grade;
 }
@@ -294,28 +304,30 @@ if ($certificate->orientation == 'L') {
 $udline = str_pad(' ',9,"_");
 
 // Add images and lines
-print_border($pdf, $certificate, $brdrx, $brdry, $brdrw, $brdrh);
-draw_frame_letter($pdf, $certificate);
+certificate_print_image($pdf, $certificate, CERT_IMAGE_BORDER, $brdrx, $brdry, $brdrw, $brdrh);
+certificate_draw_frame($pdf, $certificate);
 // Set alpha to semi-transparency
 $pdf->SetAlpha(0.1);
-print_watermark($pdf, $certificate, $wmarkx, $wmarky, $wmarkw, $wmarkh);
+
+certificate_print_image($pdf, $certificate, CERT_IMAGE_WATERMARK, $wmarkx, $wmarky, $wmarkw, $wmarkh);
 $pdf->SetAlpha(1);
-print_seal($pdf, $certificate, $sealx, $sealy, '', '');
-print_signature($pdf, $certificate, $sigx, $sigy, '', '');
+certificate_print_image($pdf, $certificate, CERT_IMAGE_SEAL, $sealx, $sealy, '', '');
+certificate_print_image($pdf, $certificate, CERT_IMAGE_SIGNATURE, $sigx, $sigy, '', '');
 
 // Add text
 $pdf->SetTextColor(0,0,120);
-cert_printtext($pdf, $x, $y, 'C', 'freesans', 'B', 30, get_string('title', 'certificate'));
+certificate_print_text($pdf, $x, $y, 'C', 'freesans', 'B', 30, get_string('title', 'certificate'));
 $pdf->SetTextColor(0,0,0);
-cert_printtext($pdf, $x, $y+55, 'C', 'freeserif', '', 20, get_string('certify', 'certificate'));
-cert_printtext($pdf, $x, $y+105, 'C', 'freeserif', '', 30, $studentname. ', License #'.$udline);
-cert_printtext($pdf, $x, $y+155, 'C', 'freeserif', '', 20, get_string('statement', 'certificate'));
-cert_printtext($pdf, $x, $y+205, 'C', 'freeserif', 'B', 19, $classname);
-cert_printtext($pdf, $x, $y1, 'C', 'freeserif', '', 12, $credithours.$eduhours.$customdate);
-cert_printtext($pdf, $x, $y2, 'C', 'freeserif', '', 12, $trainersname);
-cert_printtext($pdf, $x, $y3, 'C', 'freeserif', '', 12, $location.'.');
-cert_printtext($pdf, $x, $y+283, 'C', 'freeserif', '', 12, $grade);
-cert_printtext($pdf, $x, $y+311, 'C', 'freeserif', '', 12, $outcome);
-cert_printtext($pdf, $x, $codey, 'C', 'freeserif', '', 10, get_string('verificationcode','certificate').$certificateprintcode);
-cert_printtext($pdf, $x, $codey+25, 'C', 'freeserif', '', 8.5, get_string('bottomline','certificate'));
+certificate_print_text($pdf, $x, $y + 55, 'C', 'freeserif', '', 20, get_string('certify', 'certificate'));
+certificate_print_text($pdf, $x, $y + 105, 'C', 'freeserif', '', 30, fullname($USER) . ', License #' . $udline);
+certificate_print_text($pdf, $x, $y + 155, 'C', 'freeserif', '', 20, get_string('statement', 'certificate'));
+certificate_print_text($pdf, $x, $y + 205, 'C', 'freeserif', 'B', 19, $classname);
+certificate_print_text($pdf, $x, $y + 100, 'C', 'freeserif', '', 12, $credithours . $eduhours . $customdate);
+certificate_print_text($pdf, $x, $y2, 'C', 'freeserif', '', 12, $trainersname);
+certificate_print_text($pdf, $x, $y3, 'C', 'freeserif', '', 12, $location . '.');
+certificate_print_text($pdf, $x, $y + 283, 'C', 'freeserif', '', 12, $grade);
+
+certificate_print_text($pdf, $x, $y + 311, 'C', 'freeserif', '', 12, $outcome);
+certificate_print_text($pdf, $x, $codey, 'C', 'freeserif', '', 10, get_string('verificationcode', 'certificate') . $certificateprintcode);
+certificate_print_text($pdf, $x, $codey + 25, 'C', 'freeserif', '', 8.5, get_string('bottomline', 'certificate'));
 ?>

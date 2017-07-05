@@ -80,6 +80,8 @@ if($certificate->eduhours){
         }
 } else $eduhours = '';
 
+//Print grade
+
 // Print Location
 if($certificate->location ==''){
         $location = '';
@@ -93,6 +95,53 @@ if($certificate->trainer == ''){
 } else {
         $trainersname = 'Presented by '.$certificate->trainer;
 }
+//Grade formatting
+$grade = '';
+//Print the course grade
+
+$coursegrade = certificate_get_grade($certificate, $course);
+
+if ($certificate->printgrade == 1 && property_exists($certrecord, 'reportgrade')) {
+    if ($certrecord->reportgrade == !null) {
+        $reportgrade = $certrecord->reportgrade;
+        $grade = $strcoursegrade . ':  ' . $reportgrade;
+    }
+
+} else
+    if ($certificate->printgrade > 0) {
+        if ($certificate->printgrade == 1) {
+            if ($certificate->gradefmt == 1) {
+                $grade = ' ' . $coursegrade->percentage;
+            }
+            if ($certificate->gradefmt == 2) {
+                $grade = '  ' . $coursegrade->points;
+            }
+            if ($certificate->gradefmt == 3) {
+                $grade = ' ' . $coursegrade->letter;
+
+            }
+        } else {
+            //Print the mod grade
+            $modinfo = certificate_get_mod_grade($course, $certificate->printgrade, $USER->id);
+            if (property_exists($certrecord, 'reportgrade')) {
+                if ($certrecord->reportgrade == !null) {
+                    $modgrade = $certrecord->reportgrade;
+                    $grade = $modinfo->name . ' ' . $strgrade . ': ' . $modgrade;
+                }
+            } else
+                if ($certificate->printgrade > 1) {
+                    if ($certificate->gradefmt == 1) {
+                        $grade = $modinfo->name . ' ' . $modinfo->percentage;
+                    }
+                    if ($certificate->gradefmt == 2) {
+                        $grade = $modinfo->name . ' ' . $modinfo->points;
+                    }
+                    if ($certificate->gradefmt == 3) {
+                        $grade = $modinfo->name . ' ' . $modinfo->letter;
+                    }
+                }
+        }
+    }
 
 
 $customcertificatedate = '';
@@ -156,6 +205,8 @@ if($customdate == 0){
                 $certificateprintdate = $customcertificatedate;
         }
 }
+
+
 //print_object($certificateprintdate);
 $certificateprintcode = (certificate_get_code($certificate, $certrecord));
 //$testsql = $DB->execute("SELECT * FROM mdl_certificate_issues where mdl_certificate_issues.code='$certificateprintcode'");
@@ -228,7 +279,7 @@ certificate_print_text($pdf, $x, $y + 72, 'C', 'freeserif', '', 24, $classname);
 certificate_print_text($pdf, $x, $y + 100, 'C', 'freeserif', '', 14, $credithours.$eduhours.$customdate);
 certificate_print_text($pdf, $x, $y + 110, 'C', 'freeserif', '', 14, $trainersname);
 certificate_print_text($pdf, $x, $y + 120, 'C', 'freeserif', '', 14, $location);
-
+certificate_print_text($pdf, $x, $y + 283, 'C', 'freeserif', '', 12, $grade);
 certificate_print_text($pdf, $x, $codey, 'C', 'freeserif', '', 10, get_string('verificationcode','certificate').$certificateprintcode);
 certificate_print_text($pdf, $x, $codey+8, 'C', 'freeserif', '', 9, get_string('bottomline','certificate'));
 $i = 0;

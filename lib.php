@@ -210,7 +210,8 @@ function certificate_user_complete($course, $user, $mod, $certificate) {
         echo get_string('issued', 'certificate') . ": ";
         echo userdate($issue->timecreated);
         $cm = get_coursemodule_from_instance('certificate', $certificate->id, $course->id);
-        certificate_print_user_files($certificate->id, $user->id, context_module::instance($cm->id));
+       $context = context_module::instance($cm->id);
+       certificate_print_user_files($certificate, $user->id, $context->id);
         echo '<br />';
         echo $OUTPUT->box_end();
     } else {
@@ -1298,7 +1299,8 @@ function certificate_get_grade($certificate, $course, $userid = null, $valueonly
             }
         } else { // Print the mod grade
             if ($modinfo = certificate_get_mod_grade($course, $certificate->printgrade, $userid)) {
-                $grade = $strprefix . $coursegrade->letter;
+
+
                 $strprefix = '';
                 if (!$valueonly) {
                     $strprefix = $modinfo->name . ' ' . get_string('grade', 'certificate') . ': ';
